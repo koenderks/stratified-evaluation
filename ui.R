@@ -63,12 +63,12 @@ ui <- fluidPage(
                         value = 0.95, 
                         step = 0.01),
             sliderInput(inputId = "iter", label = "Number of iterations:", 
-                         value = 2000, 
-                         min = 500, 
-                         max = 5000, 
-                         step = 100),
+                        value = 2000, 
+                        min = 500, 
+                        max = 5000, 
+                        step = 100),
             
-            numericInput(inputId = "num", label = "Number of strata", value = 1, min = 1),
+            numericInput(inputId = "num", label = "Number of strata", value = 2, min = 2),
             
             uiOutput(outputId = "out"),
             
@@ -94,11 +94,13 @@ ui <- fluidPage(
                 ),
                 tabPanel(title = "MRP",
                          icon = icon("layer-group"),
-                         h3("Results"),
-                         shinycssloaders::withSpinner(tableOutput(outputId = "postMainTable"), color = "#FF4500", type = 4, size = 1),
-                         shinycssloaders::withSpinner(tableOutput(outputId = "postStratumTable"), color = "#FF4500", type = 4, size = 1),
-                         shinycssloaders::withSpinner(plotOutput(outputId = "postPlot"), color = "#FF4500", type = 4, size = 1),
-                         shinycssloaders::withSpinner(plotOutput(outputId = "stratumPlot"), color = "#FF4500", type = 4, size = 1)
+                         h3("Inference on the population"),
+                         shinycssloaders::withSpinner(tableOutput(outputId = "mrpMainTable"), color = "#FF4500", type = 4, size = 1),
+                         shinycssloaders::withSpinner(plotOutput(outputId = "mrpPosteriorPredictive"), color = "#FF4500", type = 4, size = 1),
+                         h3("Inference on individual strata"),
+                         shinycssloaders::withSpinner(tableOutput(outputId = "mrpStratumTable"), color = "#FF4500", type = 4, size = 1),
+                         shinycssloaders::withSpinner(plotOutput(outputId = "mrpComparison"), color = "#FF4500", type = 4, size = 1),
+                         shinycssloaders::withSpinner(plotOutput(outputId = "mrpPosteriorPredictives"), color = "#FF4500", type = 4, size = 1)
                 )
             )
         )
