@@ -78,37 +78,28 @@ server <- function(input, output, session) {
     observe({
         updateSelectInput(session, "var2", choices = names(contentsrea()), selected = names(contentsrea())[4])
         updateSelectInput(session, "stratum", choices = names(contentsrea()), selected = names(contentsrea())[2])
-    })
-    
-    output$out <- renderUI({
-        numinputs <- lapply(1:10, function(i){
-            numericInput(inputId = paste0("n", i), label = paste0("Size stratum ", i), value = 100, min = 1)
-        })
-        shinyjs::hidden(numinputs)
-    })
-    
-    observeEvent(eventExpr = input$refresh, handlerExpr = {
-        n <- seq(length.out = as.numeric(input$num))
-        lapply(seq(10), function(i) {
-            if(i %in% n) {
-                shinyjs::show(id = paste0("n", i))
-            } else{
-                shinyjs::hide(id = paste0("n", i))
-            }
-        })
+        
+        if(!is.null(input$datafile)){
+            df <- read.csv(input$datafile$datapath, header = TRUE)
+            stratum <- df[, which(colnames(df) == input$stratum)]
+            noStrata <- length(unique(stratum))
+            output$out <- renderUI({
+                numinputs <- lapply(1:noStrata, function(i){
+                    numericInput(inputId = paste0("n", i), label = paste0("Population size stratum ", i), value = 100, min = 1)
+                })
+            })   
+        }
     })
     
     # Initialize main output
     output$maintable <- renderTable({
         x <- data.frame(method = c("No stratification", "Method of moments", "Weighting", "Multilevel regression with poststratification"), x1 = rep(NA, 4), x2 = rep(NA, 4))
-        colnames(x) <- c("", "Expected relative taint", paste0(round(input$confidence * 100, 2), "% Upper bound"))
+        colnames(x) <- c("", "Most likely error", paste0(round(input$confidence * 100, 2), "% Upper bound"))
         x
     }, striped = TRUE, na = ".")
     
     output$descriptivesTable <- renderTable ({
-        sizes <- c(input$n1, input$n2, input$n3, input$n4, input$n5)
-        sizes <- sizes[1:input$num]
-        tab <- data.frame(pop = sum(sizes), strata = input$num, sample = NA, errors = NA)
+        tab <- data.frame(pop = NA, strata = NA, sample = NA, errors = NA)
         colnames(tab) <- c("Population size", "Strata", "Sample size", "Errors")
         tab
     }, na = ".")
@@ -119,7 +110,7 @@ server <- function(input, output, session) {
     output$momentMainTable <- renderTable({
         
         df <- data.frame(name = "Method of moments", mean = NA, bound = NA)
-        colnames(df) <- c("", "Expected relative taint", paste0(round(input$confidence * 100, 2), "% Upper bound"))
+        colnames(df) <- c("", "Most likely error", paste0(round(input$confidence * 100, 2), "% Upper bound"))
         df
         
     }, striped = T, na = ".")
@@ -128,7 +119,7 @@ server <- function(input, output, session) {
     output$weightingMainTable <- renderTable({
         
         df <- data.frame(name = "Weighting", mean = NA, bound = NA)
-        colnames(df) <- c("", "Expected relative taint", paste0(round(input$confidence * 100, 2), "% Upper bound"))
+        colnames(df) <- c("", "Most likely error", paste0(round(input$confidence * 100, 2), "% Upper bound"))
         df
         
     }, striped = T, na = ".")
@@ -137,7 +128,7 @@ server <- function(input, output, session) {
     output$mrpMainTable <- renderTable({
         
         df <- data.frame(name = "Multilevel regression with poststratification", mean = NA, sd = NA, bound = NA)
-        colnames(df) <- c("", "Expected relative taint", "Std. Deviation taint", paste0(round(input$confidence * 100, 2), "% Upper bound"))
+        colnames(df) <- c("", "Most likely error", "Std. Deviation taint", paste0(round(input$confidence * 100, 2), "% Upper bound"))
         df
         
     }, striped = T, na = ".")
@@ -164,33 +155,49 @@ server <- function(input, output, session) {
                 stratum <- df[, which(colnames(df) == input$stratum)]
                 sample <- data.frame(taint = taint, stratum = stratum)
                 
+                noStrata <- length(unique(stratum))
+                
                 #################################################################################################
                 ############################ Data manipulation ##################################################
                 #################################################################################################
                 
                 incProgress(1/steps, detail = "Preparing input [2/12]")
                 
-                # Filtering on the basis of user-input
-                sample <- sample[sample$stratum <= input$num, ]
-                
-                sizes <- c(input$n1, input$n2, input$n3, input$n4, input$n5)
-                sizes <- sizes[1:input$num]
-                poststrat <- data.frame(stratum = 1:input$num, N = sizes, N_errors = sum(taint))
+                sizes <- c(input$n1, input$n2, input$n3, input$n4, input$n5, input$n6, input$n7, input$n8)
+                sizes <- sizes[1:noStrata]
+                poststrat <- data.frame(stratum = 1:noStrata, N = sizes, N_errors = sum(taint))
                 
                 #################################################################################################
                 ############################ Model fitting ######################################################
                 #################################################################################################
                 
-                incProgress(1/steps, detail = "Fitting Method of moments model [3/12]")
+                incProgress(1/steps, detail = "Calculating non-stratified outcomes [3/12]")
+                
+                meanTaint <- mean(sample$taint)
+                sdTaint <- sd(sample$taint)
+                n <- length(sample$taint)
+                k <- sum(sample$taint)
+                ubTaint <- qbeta(input$confidence, 1 + k, 1 + n - k)
+                
+                incProgress(1/steps, detail = "Calculating Method of moment parameters [4/12]")
+                
+                alpha_s <- numeric()
+                beta_s <- numeric()
+                for (i in 1:length(levels(as.factor(sample$stratum)))) {
+                    level <- levels(as.factor(sample$stratum))[i]
+                    s_i <- sample[sample$stratum == i, ]
+                    alpha_s[i] <- 1 + sum(s_i$taint)
+                    beta_s[i] <- 1 + length(s_i$taint) - sum(s_i$taint)
+                }
                 
                 momentAlpha <- mean(sample$taint) * ( ( (mean(sample$taint) * (1 - mean(sample$taint))) / var(sample$taint)) - 1)
                 momentBeta <- (momentAlpha * (1 - mean(sample$taint))) / mean(sample$taint)
                 momentMean <- momentAlpha / (momentAlpha + momentBeta)
                 momentBound <- qbeta(p = input$confidence, shape1 = momentAlpha, shape2 = momentBeta)
                 
-                incProgress(1/steps, detail = "Fitting Weighting model [4/12]")
+                incProgress(1/steps, detail = "Calculating Weighted parameters [5/12]")
                 
-                incProgress(1/steps, detail = "Fitting MRP model [5/12]")
+                incProgress(1/steps, detail = "Fitting MRP model [6/12]")
       
                 sample_alt <- sample %>% group_by(stratum) %>% summarise(N_errors = sum(taint), N = n()) %>% ungroup()
                 fit <- stan_glmer(cbind(N_errors, N - N_errors) ~ (1 | stratum), family = binomial("logit"), data = sample_alt, iter = input$iter)
@@ -209,18 +216,18 @@ server <- function(input, output, session) {
                 incProgress(1/steps, detail = "Rendering main results table [6/12]")
                 
                 output$descriptivesTable <- renderTable ({
-                    tab <- data.frame(pop = sum(sizes), strata = input$num, sample = nrow(sample), errors = sum(sample$taint))
+                    tab <- data.frame(pop = sum(sizes), strata = noStrata, sample = nrow(sample), errors = sum(sample$taint))
                     colnames(tab) <- c("Population size", "Strata", "Sample size", "Errors")
                     tab
                 }, na = "")
                 
                 output$maintable <- renderTable({
                     
-                    table <- data.frame(method = "No stratification", mle = round(mean(sample$taint), 3), ub = qbeta(input$confidence, 1 + sum(sample$taint), 1 + length(sample$taint) - sum(sample$taint)))
+                    table <- data.frame(method = "No stratification", mle = round(meanTaint, 3), ub = round(ubTaint, 3))
                     table <- rbind(table, data.frame(method = "Method of moments", mle = momentMean, ub = momentBound))
                     table <- rbind(table, data.frame(method = "Weighting", mle = -1, ub = -1))
                     table <- rbind(table, data.frame(method = "Multilevel regression with poststratification", mle = postMean, ub = postBound))
-                    colnames(table) <- c("", "Expected relative taint", paste0(round(input$confidence * 100, 2), "% Upper bound"))
+                    colnames(table) <- c("", "Most likely error", paste0(round(input$confidence * 100, 2), "% Upper bound"))
                     table
                     
                 }, striped = T, na = ".")
@@ -234,7 +241,7 @@ server <- function(input, output, session) {
                 output$mrpMainTable <- renderTable({
                     
                     df <- data.frame(name = "Multilevel regression with poststratification", mean = round(mean(poststrat_prob), 3), sd = round(sd(poststrat_prob), 3), bound = as.numeric(quantile(poststrat_prob, probs = input$confidence)))
-                    colnames(df) <- c("", "Expected relative taint", "Std. Deviation taint", paste0(round(input$confidence * 100, 2), "% Upper bound"))
+                    colnames(df) <- c("", "Most likely error", "Std. Deviation taint", paste0(round(input$confidence * 100, 2), "% Upper bound"))
                     df
 
                 }, striped = T, na = ".")
@@ -284,7 +291,7 @@ server <- function(input, output, session) {
                     posterior_prob_stratum <- posterior_epred(fit, draws = 1000, newdata = as.data.frame(poststrat_stratum))
                     poststrat_prob_stratum <- (posterior_prob_stratum %*% poststrat_stratum$N) / sum(poststrat_stratum$N)
                     
-                    stratumtable$N[i] <- as.integer(length(sample$taint[sample$stratum == i]))
+                    stratumtable$N[i] <- length(sample$taint[sample$stratum == i])
                     stratumtable$stratum_sample[i] <- round(mean(sample$taint[sample$stratum == i]), 3)
                     stratumtable$stratum_sample_sd[i] <- round(sd(sample$taint[sample$stratum == i]), 3)
                     stratumtable$stratum_population_n <- sizes
