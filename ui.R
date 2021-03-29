@@ -22,19 +22,17 @@ ui <- fluidPage(
                       font-size: 30px;
                       font-style: italic;
                     }
-                    #text1{
-                      color: white;
-                    }
+                    
                     #datafile{
                       font-color: white;
                     }
                                  
                    #sidebar {
-                   background-color: #1e90ff;
+                   background-color: #82CAFF;
                    }
                    
-.js-irs-0 .irs-single, .js-irs-0 .irs-bar-edge, .js-irs-0 .irs-bar {background: black}
-.js-irs-1 .irs-single, .js-irs-1 .irs-bar-edge, .js-irs-1 .irs-bar {background: black}
+.js-irs-0 .irs-single, .js-irs-0 .irs-bar-edge, .js-irs-0 .irs-bar {background: #FFB682}
+.js-irs-1 .irs-single, .js-irs-1 .irs-bar-edge, .js-irs-1 .irs-bar {background: #FFB682}
                    
                    body, label, input, button, select { 
                    font-family: "Arial";
@@ -68,7 +66,7 @@ ui <- fluidPage(
                         max = 10000, 
                         step = 100),
             
-            numericInput(inputId = "num", label = "Number of strata", value = 2, min = 2),
+            numericInput(inputId = "num", label = "Number of strata", value = 2, min = 2, max = 10),
             
             uiOutput(outputId = "out"),
             
@@ -80,27 +78,28 @@ ui <- fluidPage(
                 tabPanel(title = "All methods", 
                          icon = icon("boxes"),
                          h3("Results"),
-                         shinycssloaders::withSpinner(tableOutput(outputId = "maintable"), color = "#FF4500", type = 4, size = 1),
-                         shinycssloaders::withSpinner(plotOutput(outputId = "comparison"), color = "#FF4500", type = 4, size = 1)
+                         shinycssloaders::withSpinner(tableOutput(outputId = "descriptivesTable"), color = "#FFB682", type = 4, size = 1),
+                         shinycssloaders::withSpinner(tableOutput(outputId = "maintable"), color = "#FFB682", type = 4, size = 1),
+                         shinycssloaders::withSpinner(plotOutput(outputId = "comparison"), color = "#FFB682", type = 4, size = 1)
                 ),
                 tabPanel(title = "Method of moments",
                          icon = icon("ruler-combined"),
                          h3("Results"),
-                         shinycssloaders::withSpinner(tableOutput(outputId = "momentMainTable"), color = "#FF4500", type = 4, size = 1)
+                         shinycssloaders::withSpinner(tableOutput(outputId = "momentMainTable"), color = "#FFB682", type = 4, size = 1)
                 ),
                 tabPanel(title = "Weighting",
                          icon = icon("balance-scale-right"),
                          h3("Results"),
-                         shinycssloaders::withSpinner(tableOutput(outputId = "weightingMainTable"), color = "#FF4500", type = 4, size = 1)
+                         shinycssloaders::withSpinner(tableOutput(outputId = "weightingMainTable"), color = "#FFB682", type = 4, size = 1)
                 ),
                 tabPanel(title = "MRP",
                          icon = icon("layer-group"),
                          h3("Inference on the population"),
-                         shinycssloaders::withSpinner(tableOutput(outputId = "mrpMainTable"), color = "#FF4500", type = 4, size = 1),
-                         shinycssloaders::withSpinner(plotOutput(outputId = "mrpPosteriorPredictive"), color = "#FF4500", type = 4, size = 1),
+                         shinycssloaders::withSpinner(tableOutput(outputId = "mrpMainTable"), color = "#FFB682", type = 4, size = 1),
+                         shinycssloaders::withSpinner(plotOutput(outputId = "mrpPosteriorPredictive"), color = "#FFB682", type = 4, size = 1),
                          h3("Inference on individual strata"),
-                         shinycssloaders::withSpinner(tableOutput(outputId = "mrpStratumTable"), color = "#FF4500", type = 4, size = 1),
-                         shinycssloaders::withSpinner(plotOutput(outputId = "mrpPosteriorPredictives"), color = "#FF4500", type = 4, size = 1)
+                         shinycssloaders::withSpinner(tableOutput(outputId = "mrpStratumTable"), color = "#FFB682", type = 4, size = 1),
+                         shinycssloaders::withSpinner(plotOutput(outputId = "mrpPosteriorPredictives"), color = "#FFB682", type = 4, size = 1)
                 )
             )
         )

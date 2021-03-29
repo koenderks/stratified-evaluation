@@ -102,16 +102,25 @@ server <- function(input, output, session) {
     # Initialize main output
     output$maintable <- renderTable({
         x <- data.frame(method = c("No stratification", "Method of moments", "Weighting", "Multilevel regression with poststratification"), x1 = rep(NA, 4), x2 = rep(NA, 4))
-        colnames(x) <- c("", "Expected relative taint", "Upper bound relative taint")
+        colnames(x) <- c("", "Expected relative taint", paste0(round(input$confidence * 100, 2), "% Upper bound"))
         x
     }, striped = TRUE, na = ".")
+    
+    output$descriptivesTable <- renderTable ({
+        sizes <- c(input$n1, input$n2, input$n3, input$n4, input$n5)
+        sizes <- sizes[1:input$num]
+        tab <- data.frame(pop = sum(sizes), strata = input$num, sample = NA, errors = NA)
+        colnames(tab) <- c("Population size", "Strata", "Sample size", "Errors")
+        tab
+    }, na = ".")
+    
     output$comparison <- renderPlot(NULL)
     
     # Initialize main moment output
     output$momentMainTable <- renderTable({
         
         df <- data.frame(name = "Method of moments", mean = NA, bound = NA)
-        colnames(df) <- c("", "Expected relative taint", "Upper bound relative taint")
+        colnames(df) <- c("", "Expected relative taint", paste0(round(input$confidence * 100, 2), "% Upper bound"))
         df
         
     }, striped = T, na = ".")
@@ -120,7 +129,7 @@ server <- function(input, output, session) {
     output$weightingMainTable <- renderTable({
         
         df <- data.frame(name = "Weighting", mean = NA, bound = NA)
-        colnames(df) <- c("", "Expected relative taint", "Upper bound relative taint")
+        colnames(df) <- c("", "Expected relative taint", paste0(round(input$confidence * 100, 2), "% Upper bound"))
         df
         
     }, striped = T, na = ".")
@@ -129,7 +138,7 @@ server <- function(input, output, session) {
     output$mrpMainTable <- renderTable({
         
         df <- data.frame(name = "Multilevel regression with poststratification", mean = NA, sd = NA, bound = NA)
-        colnames(df) <- c("", "Expected relative taint", "Std. Deviation taint", "Upper bound relative taint")
+        colnames(df) <- c("", "Expected relative taint", "Std. Deviation taint", paste0(round(input$confidence * 100, 2), "% Upper bound"))
         df
         
     }, striped = T, na = ".")
@@ -202,13 +211,19 @@ server <- function(input, output, session) {
                 
                 incProgress(1/steps, detail = "Rendering main results table [6/12]")
                 
+                output$descriptivesTable <- renderTable ({
+                    tab <- data.frame(pop = sum(sizes), strata = input$num, sample = nrow(sample), errors = sum(sample$taint))
+                    colnames(tab) <- c("Population size", "Strata", "Sample size", "Errors")
+                    tab
+                }, na = "")
+                
                 output$maintable <- renderTable({
                     
                     table <- data.frame(method = "No stratification", mle = round(mean(sample$taint), 3), ub = qbeta(input$confidence, 1 + sum(sample$taint), 1 + length(sample$taint) - sum(sample$taint)))
                     table <- rbind(table, data.frame(method = "Method of moments", mle = momentMean, ub = momentBound))
                     table <- rbind(table, data.frame(method = "Weighting", mle = -1, ub = -1))
                     table <- rbind(table, data.frame(method = "Multilevel regression with poststratification", mle = postMean, ub = postBound))
-                    colnames(table) <- c("", "Expected relative taint", "Upper bound relative taint")
+                    colnames(table) <- c("", "Expected relative taint", paste0(round(input$confidence * 100, 2), "% Upper bound"))
                     table
                     
                 }, striped = T, na = ".")
@@ -222,7 +237,7 @@ server <- function(input, output, session) {
                 output$mrpMainTable <- renderTable({
                     
                     df <- data.frame(name = "Multilevel regression with poststratification", mean = round(mean(poststrat_prob), 3), sd = round(sd(poststrat_prob), 3), bound = as.numeric(quantile(poststrat_prob, probs = input$confidence)))
-                    colnames(df) <- c("", "Expected relative taint", "Std. Deviation taint", "Upper bound relative taint")
+                    colnames(df) <- c("", "Expected relative taint", "Std. Deviation taint", paste0(round(input$confidence * 100, 2), "% Upper bound"))
                     df
 
                 }, striped = T, na = ".")
