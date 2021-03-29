@@ -18,6 +18,7 @@ theme_set(bayesplot::theme_default())
 library(dplyr)
 library(tidyr)
 library(gridExtra)
+library(shinycssloaders)
 
 # Define server logic required to draw a histogram
 server <- function(input, output, session) {
@@ -32,6 +33,13 @@ server <- function(input, output, session) {
         updateSelectInput(session, "var2", choices = names(contentsrea()), selected = names(contentsrea())[4])
         updateSelectInput(session, "stratum", choices = names(contentsrea()), selected = names(contentsrea())[2])
     })
+    
+    output$maintable <- momentMainTable <- renderTable(NULL)
+    output$momentMainTable <- renderTable(NULL)
+    output$weightingMainTable <- renderTable(NULL)
+    output$postMainTable <- renderTable(NULL)
+    output$postPlot <- renderPlot(NULL)
+    output$postStratumTable <- renderTable(NULL)
     
     observeEvent(input$update, {
         if(!is.null(input$datafile)){
@@ -96,7 +104,8 @@ server <- function(input, output, session) {
                 
                 compare2 <- ggplot()+
                     geom_hline(yintercept = mean(sample$taint),size=.8)+
-                    geom_text(aes(x = 5.2, y = mean(sample$taint)+.025, label = "Sample"))+
+                    geom_text(aes(x = 5.2, y = mean(sample$taint)+.025, label = "No stratification"), size = 2.5)+
+                    scale_x_continuous(name = "", labels = NULL) + 
                     scale_y_continuous(breaks = yBreaks, limits= range(yBreaks))+
                     theme_bw()+
                     labs(x="Population",y="")+
@@ -110,14 +119,19 @@ server <- function(input, output, session) {
                 ############################ Main table #########################################################
                 #################################################################################################
                 
-                incProgress(1/steps, detail = "Rendering main table [4/5]")
+                output$maintable <- renderTable({
+                    
+                    incProgress(1/steps, detail = "Rendering main table [4/5]")
+                    
+                    table <- data.frame(method = "No stratification", mle = round(mean(sample$taint), 3), sd = round(sd(sample$taint), 3), ub = qbeta(input$confidence, 1 + sum(sample$taint), 1 + length(sample$taint) - sum(sample$taint)))
+                    table <- rbind(table, data.frame(method = "Method of moments", mle = -1, sd = -1, ub = -1))
+                    table <- rbind(table, data.frame(method = "Weighting", mle = -1, sd = -1, ub = -1))
+                    table <- rbind(table, data.frame(method = "Multilevel regression with poststratification", mle = round(mean(poststrat_prob), 3), sd = round(sd(poststrat_prob), 3), ub = -1))
+                    colnames(table) <- c("", "Expected relative taint", "Std. Deviation taint", "Upper bound relative taint")    
+                    table
+                    
+                })
                 
-                table <- data.frame(method = "No stratification", mle = round(mean(sample$taint), 3), sd = round(sd(sample$taint), 3), ub = qbeta(input$confidence, 1 + sum(sample$taint), 1 + length(sample$taint) - sum(sample$taint)))
-                table <- rbind(table, data.frame(method = "Method of moments", mle = -1, sd = -1, ub = -1))
-                table <- rbind(table, data.frame(method = "Weighting", mle = -1, sd = -1, ub = -1))
-                table <- rbind(table, data.frame(method = "Multilevel regression with poststratification", mle = round(mean(poststrat_prob), 3), sd = round(sd(poststrat_prob), 3), ub = -1))
-                colnames(table) <- c("", "Expected relative taint", "Std. Deviation taint", "Upper bound relative taint")    
-
                 #################################################################################################
                 ############################ Individual strata table ############################################
                 #################################################################################################
@@ -149,35 +163,32 @@ server <- function(input, output, session) {
                     stratumtable$stratum_sd[i] <- round(sd(poststrat_prob_stratum), 3)
                 }
                 
+                output$postStratumTable <- renderTable({
+                    colnames(stratumtable) <- c("Stratum", "Size", "Sample mu", "Sample sigma", "Model mu", "Model sigma")
+                    stratumtable
+                })
+                
                 #################################################################################################
                 ############################ Additions to figure ################################################
                 #################################################################################################
                 
-                compare <- compare +
-                    geom_point(data=stratumtable, mapping=aes(x=stratum, y=stratum_est),
-                               inherit.aes=TRUE,colour='#238b45')+
-                    geom_line(data=stratumtable, mapping=aes(x=stratum, y=stratum_est,group=1),
-                              inherit.aes=TRUE,colour='#238b45')+
-                    geom_ribbon(data=stratumtable,mapping=aes(x=stratum,ymin=stratum_est-stratum_sd,
-                                                              ymax=stratum_est+stratum_sd,group=1), 
-                                inherit.aes=FALSE,fill='#2ca25f',alpha=.3)
-                
-                compare2 <- compare2 +
-                    geom_hline(yintercept = mean(poststrat_prob), colour = '#2ca25f', size = 1) +
-                    geom_text(aes(x = 5.2, y = mean(poststrat_prob) - .025), label = "MRP", colour = '#2ca25f')
-                
-                p <- bayesplot_grid(compare,compare2, 
-                                    grid_args = list(nrow=1, widths = c(8,1)))
-                
-                colnames(stratumtable) <- c("Stratum", "n", "Sample mu", "Sample sigma", "Model mu", "Model sigma")
-                
-                #################################################################################################
-                ############################ Render all output ##################################################
-                #################################################################################################
-                
-                output$maintable <- renderTable(table)
-                output$postPlot <- renderPlot(p)
-                output$postStratumTable <- renderTable(stratumtable)
+                output$postPlot <- renderPlot({
+                    compare <- compare +
+                        geom_point(data=stratumResults, mapping=aes(x=stratum, y=stratum_est),
+                                   inherit.aes=TRUE,colour='#238b45')+
+                        geom_line(data=stratumResults, mapping=aes(x=stratum, y=stratum_est,group=1),
+                                  inherit.aes=TRUE,colour='#238b45')+
+                        geom_ribbon(data=stratumResults,mapping=aes(x=stratum,ymin=stratum_est-stratum_sd,
+                                                                    ymax=stratum_est+stratum_sd,group=1), 
+                                    inherit.aes=FALSE,fill='#2ca25f',alpha=.3)
+                    
+                    compare2 <- compare2 +
+                        geom_hline(yintercept = mean(poststrat_prob), colour = '#2ca25f', size = 1) +
+                        geom_text(aes(x = 5.2, y = mean(poststrat_prob) - .025), label = "MRP", colour = '#2ca25f')
+                    
+                    p <- bayesplot_grid(compare,compare2, grid_args = list(nrow=1, widths = c(8,2)))
+                    p
+                })
                 
             })
         }

@@ -32,22 +32,26 @@ ui <- fluidPage(
         mainPanel(
             tabsetPanel(
                 tabPanel(title = "All", 
+                         icon = icon("boxes"),
                          h3("Results"),
-                         tableOutput(outputId = "maintable")
+                         shinycssloaders::withSpinner(tableOutput(outputId = "maintable"), color = "darkred", type = 4, size = 1)
                 ),
                 tabPanel(title = "Method of moments",
+                         icon = icon("ruler-combined"),
                          h3("Results"),
-                         tableOutput("momentTable")
+                         shinycssloaders::withSpinner(tableOutput(outputId = "momentMainTable"), color = "darkred", type = 4, size = 1)
                 ),
                 tabPanel(title = "Weighting",
+                         icon = icon("balance-scale-right"),
                          h3("Results"),
-                         tableOutput("weightingTable")
+                         shinycssloaders::withSpinner(tableOutput(outputId = "weightingMainTable"), color = "darkred", type = 4, size = 1)
                 ),
                 tabPanel(title = "Multilevel regression with poststratification",
+                         icon = icon("layer-group"),
                          h3("Results"),
-                         tableOutput(outputId = "postMainTable"),
-                         plotOutput(outputId = "postPlot"),
-                         tableOutput(outputId = "postStratumTable")
+                         shinycssloaders::withSpinner(tableOutput(outputId = "postMainTable"), color = "darkred", type = 4, size = 1),
+                         shinycssloaders::withSpinner(plotOutput(outputId = "postPlot"), color = "darkred", type = 4, size = 1),
+                         shinycssloaders::withSpinner(tableOutput(outputId = "postStratumTable"), color = "darkred", type = 4, size = 1)
                 )
             )
         )
