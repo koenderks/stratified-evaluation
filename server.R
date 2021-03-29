@@ -101,21 +101,42 @@ server <- function(input, output, session) {
     
     # Initialize main output
     output$maintable <- renderTable({
-        x <- data.frame(method = c("No stratification", "Method of moments", "Weighting", "Multilevel regression with poststratification"), x1 = rep(NA, 4), x2 = rep(NA, 4), x3 = rep(NA, 4))
-        colnames(x) <- c("", "Expected relative taint", "Std. Deviation taint", "Upper bound relative taint")
+        x <- data.frame(method = c("No stratification", "Method of moments", "Weighting", "Multilevel regression with poststratification"), x1 = rep(NA, 4), x2 = rep(NA, 4))
+        colnames(x) <- c("", "Expected relative taint", "Upper bound relative taint")
         x
     }, striped = TRUE, na = ".")
     
     # Initialize main moment output
-    output$momentMainTable <- renderTable(NULL)
+    output$momentMainTable <- renderTable({
+        
+        df <- data.frame(name = "Method of moments", mean = NA, bound = NA)
+        colnames(df) <- c("", "Expected relative taint", "Upper bound relative taint")
+        df
+        
+    }, striped = T, na = ".")
     
     # Initialize main weighting output
-    output$weightingMainTable <- renderTable(NULL)
+    output$weightingMainTable <- renderTable({
+        
+        df <- data.frame(name = "Weighting", mean = NA, bound = NA)
+        colnames(df) <- c("", "Expected relative taint", "Upper bound relative taint")
+        df
+        
+    }, striped = T, na = ".")
     
     # Initialize main post stratification output
-    output$postMainTable <- renderTable(NULL)
-    output$postPlot <- renderPlot(NULL)
-    output$postStratumTable <- renderTable(NULL)
+    output$mrpMainTable <- renderTable({
+        
+        df <- data.frame(name = "Multilevel regression with poststratification", mean = NA, sd = NA, bound = NA)
+        colnames(df) <- c("", "Expected relative taint", "Std. Deviation taint", "Upper bound relative taint")
+        df
+        
+    }, striped = T, na = ".")
+    
+    output$mrpStratumTable <- renderTable(NULL)
+    output$mrpPosteriorPredictive <- renderPlot(NULL)
+    output$mrpComparison <- renderPlot(NULL)
+    output$mrpPosteriorPredictives <- renderPlot(NULL)
     
     observeEvent(input$update, {
         if(!is.null(input$datafile)){
@@ -169,7 +190,7 @@ server <- function(input, output, session) {
                 fit <- stan_glmer(cbind(N_errors, N - N_errors) ~ (1 | stratum), family = binomial("logit"), data = sample_alt)
                 pp <- posterior_predict(fit, newdata = poststrat)
                 
-                posterior_prob <- posterior_epred(fit, newdata = poststrat)
+                posterior_prob <- posterior_epred(fit, draws = 1000, newdata = poststrat)
                 poststrat_prob <- posterior_prob %*% poststrat$N / sum(poststrat$N)
                 
                 postMean <- round(mean(poststrat_prob), 3)
@@ -250,7 +271,7 @@ server <- function(input, output, session) {
                 
                 for(i in 1:length(levels(as.factor(poststrat$stratum)))) {
                     poststrat_stratum <- poststrat[poststrat$stratum == i, ]
-                    posterior_prob_stratum <- posterior_epred(fit,draws = 1000, newdata = as.data.frame(poststrat_stratum))
+                    posterior_prob_stratum <- posterior_epred(fit, draws = 1000, newdata = as.data.frame(poststrat_stratum))
                     poststrat_prob_stratum <- (posterior_prob_stratum %*% poststrat_stratum$N) / sum(poststrat_stratum$N)
                     
                     stratumtable$N[i] <- as.integer(length(sample$taint[sample$stratum == i]))

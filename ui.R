@@ -63,17 +63,17 @@ ui <- fluidPage(
                         value = 0.95, 
                         step = 0.01),
             sliderInput(inputId = "iter", label = "Number of iterations:", 
-                        value = 2000, 
+                        value = 5000, 
                         min = 500, 
-                        max = 5000, 
+                        max = 10000, 
                         step = 100),
             
             numericInput(inputId = "num", label = "Number of strata", value = 2, min = 2),
             
             uiOutput(outputId = "out"),
             
-            actionButton(inputId = "refresh", label = "Step 2: Stratum sizes", icon = icon("cat")),
-            actionButton(inputId = "update", label = "Step 3: Analyze", icon = icon("cat"))
+            actionButton(inputId = "refresh", label = "Step 2: Stratum sizes", icon = icon("shapes")),
+            actionButton(inputId = "update", label = "Step 3: Run", icon = icon("running"))
         ),
         mainPanel(
             tabsetPanel(
