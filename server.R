@@ -105,6 +105,7 @@ server <- function(input, output, session) {
         colnames(x) <- c("", "Expected relative taint", "Upper bound relative taint")
         x
     }, striped = TRUE, na = ".")
+    output$comparison <- renderPlot(NULL)
     
     # Initialize main moment output
     output$momentMainTable <- renderTable({
@@ -135,7 +136,6 @@ server <- function(input, output, session) {
     
     output$mrpStratumTable <- renderTable(NULL)
     output$mrpPosteriorPredictive <- renderPlot(NULL)
-    output$mrpComparison <- renderPlot(NULL)
     output$mrpPosteriorPredictives <- renderPlot(NULL)
     
     observeEvent(input$update, {
@@ -236,9 +236,9 @@ server <- function(input, output, session) {
                     yBreaks <- pretty(c(0, max(dat$Freq)), min.n = 4)
                     p1 <- ggplot(data = dat, mapping = aes(x = Var1, y = Freq)) +
                         geom_bar(fill = "darkred", colour = "black", stat = "identity") +
-                        labs(title = "Posterior predictive distribution of the error (beta-binomial)") +
+                        labs(title = "Posterior predictive distribution") +
                         scale_y_continuous(name = "", limits = range(yBreaks), breaks = yBreaks) +
-                        scale_x_continuous(name = "Predicted errors in population") +
+                        scale_x_continuous(name = "Predicted errors in population (beta-binomial)") +
                         theme_bw() +
                         theme(axis.text.y = element_blank(),
                               axis.ticks.y = element_blank())
@@ -246,7 +246,7 @@ server <- function(input, output, session) {
                     dat <- data.frame(x = as.numeric(unlist(poststrat_prob)))
                     p2 <- ggplot(data = dat, mapping = aes(x = x)) +
                         geom_density(fill = "darkred", colour = "black", alpha = 0.8) +
-                        labs(title = "Posterior distribution of the error (linear predictor)") +
+                        labs(title = "Posterior distribution (of the linear predictor)") +
                         scale_y_continuous(name = "") +
                         scale_x_continuous(name = "Error probability in population") +
                         theme_bw() +
@@ -283,9 +283,38 @@ server <- function(input, output, session) {
                     stratumtable$stratum_ub[i] <- round(quantile(posterior_prob_stratum, probs = input$confidence), 3) # Upper bound
                 }
                 
-                incProgress(1/steps, detail = "Rendering MRP sub figure [10/12]")
+                incProgress(1/steps, detail = "Rendering MRP sub table [10/12]")
                 
-                output$mrpComparison <- renderPlot({
+                output$mrpStratumTable <- renderTable({
+                    colnames(stratumtable) <- c("Stratum", "Sample size", "Mean taint", "SD", "Population", "Predicted mean", "Predicted sd", paste0(round(input$confidence * 100, 2), "% Upper bound"))
+                    stratumtable
+                }, striped = T, na = ".")
+                
+                incProgress(1/steps, detail = "Rendering MRP additional plots [11/12]")
+                
+                output$mrpPosteriorPredictives <- renderPlot({
+                    plotList <- list()
+                    for(i in 1:length(unique(sample$stratum))){
+                        dat <- as.data.frame(table(pp[, i]), stringsAsFactors = F)
+                        dat$Var1 <- as.numeric(dat$Var1)
+                        yBreaks <- pretty(c(0, max(dat$Freq)), min.n = 4)
+                        plotList[[i]] <- ggplot(data = dat, mapping = aes(x = Var1, y = Freq)) +
+                            geom_bar(fill = "darkred", colour = "black", stat = "identity") +
+                            labs(title = paste0("Posterior predictive distribution for stratum ", i, " (N = ", sizes[i], ")")) +
+                            scale_y_continuous(name = "", limits = range(yBreaks), breaks = yBreaks) +
+                            scale_x_continuous(name = "Predicted errors in stratum (beta-binomial)") +
+                            theme_bw() +
+                            theme(axis.text.y = element_blank(),
+                                  axis.ticks.y = element_blank())
+                    }
+                    n <- length(plotList)
+                    nCol <- floor(sqrt(n))
+                    do.call("grid.arrange", c(plotList, ncol=nCol))
+                })
+                
+                incProgress(1/steps, detail = "Rendering main plot [12/12]")
+                
+                output$comparison <- renderPlot({
                     
                     taint_by_stratum <- sample %>%
                         group_by(stratum) %>%
@@ -309,7 +338,7 @@ server <- function(input, output, session) {
                                                                   ymax=stratum_est+stratum_sd,group=1),
                                     inherit.aes=FALSE,fill='darkred',alpha=.3) +
                         theme_bw()+
-                        labs(x="Stratum",y="Taint")+
+                        labs(x="Stratum",y="Average taint")+
                         theme(legend.position="none",
                               axis.title=element_text(size=10),
                               axis.text.y=element_text(size=10),
@@ -320,7 +349,7 @@ server <- function(input, output, session) {
                     compare2 <- ggplot()+
                         geom_hline(yintercept = mean(sample$taint),size=.8)+
                         geom_text(aes(x = 5.2, y = mean(sample$taint)+.025, label = "No stratification"), size = 2.5)+
-                        scale_x_continuous(name = "Population") +
+                        scale_x_continuous(name = "Average taint") +
                         scale_y_continuous(name = "", breaks = yBreaks, limits= range(yBreaks))+
                         geom_hline(yintercept = mean(poststrat_prob), colour = 'darkred', size = 1) +
                         geom_text(aes(x = 5.2, y = mean(poststrat_prob) + .025), label = "MRP", colour = 'darkred') +
@@ -334,35 +363,6 @@ server <- function(input, output, session) {
                     
                     p <- bayesplot_grid(compare,compare2, grid_args = list(nrow=1, widths = c(8,2)))
                     p
-                })
-                
-                incProgress(1/steps, detail = "Rendering MRP sub table [11/12]")
-                
-                output$mrpStratumTable <- renderTable({
-                    colnames(stratumtable) <- c("Stratum", "Sample size", "Mean taint", "SD", "Population", "Predicted mean", "Predicted sd", paste0(round(input$confidence * 100, 2), "% Upper bound"))
-                    stratumtable
-                }, striped = T, na = ".")
-                
-                incProgress(1/steps, detail = "Rendering MRP additional plots [12/12]")
-                
-                output$mrpPosteriorPredictives <- renderPlot({
-                    plotList <- list()
-                    for(i in 1:length(unique(sample$stratum))){
-                        dat <- as.data.frame(table(pp[, i]), stringsAsFactors = F)
-                        dat$Var1 <- as.numeric(dat$Var1)
-                        yBreaks <- pretty(c(0, max(dat$Freq)), min.n = 4)
-                        plotList[[i]] <- ggplot(data = dat, mapping = aes(x = Var1, y = Freq)) +
-                            geom_bar(fill = "darkred", colour = "black", stat = "identity") +
-                            labs(title = paste0("Posterior predictive distribution for stratum: ", i, " (beta-binomial)")) +
-                            scale_y_continuous(name = "", limits = range(yBreaks), breaks = yBreaks) +
-                            scale_x_continuous(name = "Predicted errors in stratum") +
-                            theme_bw() +
-                            theme(axis.text.y = element_blank(),
-                                  axis.ticks.y = element_blank())
-                    }
-                    n <- length(plotList)
-                    nCol <- floor(sqrt(n))
-                    do.call("grid.arrange", c(plotList, ncol=nCol))
                 })
             })
         }

@@ -80,7 +80,8 @@ ui <- fluidPage(
                 tabPanel(title = "All methods", 
                          icon = icon("boxes"),
                          h3("Results"),
-                         shinycssloaders::withSpinner(tableOutput(outputId = "maintable"), color = "#FF4500", type = 4, size = 1)
+                         shinycssloaders::withSpinner(tableOutput(outputId = "maintable"), color = "#FF4500", type = 4, size = 1),
+                         shinycssloaders::withSpinner(plotOutput(outputId = "comparison"), color = "#FF4500", type = 4, size = 1)
                 ),
                 tabPanel(title = "Method of moments",
                          icon = icon("ruler-combined"),
@@ -99,7 +100,6 @@ ui <- fluidPage(
                          shinycssloaders::withSpinner(plotOutput(outputId = "mrpPosteriorPredictive"), color = "#FF4500", type = 4, size = 1),
                          h3("Inference on individual strata"),
                          shinycssloaders::withSpinner(tableOutput(outputId = "mrpStratumTable"), color = "#FF4500", type = 4, size = 1),
-                         shinycssloaders::withSpinner(plotOutput(outputId = "mrpComparison"), color = "#FF4500", type = 4, size = 1),
                          shinycssloaders::withSpinner(plotOutput(outputId = "mrpPosteriorPredictives"), color = "#FF4500", type = 4, size = 1)
                 )
             )
