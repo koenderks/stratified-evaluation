@@ -11,9 +11,28 @@ library(shiny)
 
 # Define UI for application that draws a histogram
 ui <- fluidPage(
-    titlePanel("Stratified evaluation of audit samples"),
+    
+    tags$head(tags$style(
+        HTML('
+                                   #sidebar {
+                                   background-color: #FA8072;
+                                   }
+                                   
+                                    #confidence {
+                                   background-color: #FA8072;
+                                   }
+                                   
+                                   body, label, input, button, select { 
+                                   font-family: "Arial";
+                                   }')
+    )),
+    
+    titlePanel("Stratified evaluation of audit samples", windowTitle = "Stratification"),
+    
     sidebarLayout(
+        
         sidebarPanel(
+            id="sidebar",
             
             p("This is an application exploring stratification in an audit setting. Upload some data and inspect your sample. Your file must be in .csv format to upload, have ';' as the cell separator and use ',' as a decimal separator."),
             
@@ -23,7 +42,7 @@ ui <- fluidPage(
             selectInput(inputId = "var2", label = "Taint variable", choices = ""),
             selectInput(inputId = "stratum", label = "Stratum variable", choices = ""),
             
-            sliderInput("confidence", "Confidence for upper bound:",
+            sliderInput(inputId = "confidence", label = "Confidence for upper bound:",
                         min = 0.8, max = 0.999,
                         value = 0.95, step = 0.01),
             

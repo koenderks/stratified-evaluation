@@ -1,42 +1,88 @@
-#
-# This is the server logic of a Shiny web application. You can run the
-# application by clicking 'Run App' above.
-#
-# Find out more about building applications with Shiny here:
-#
-#    http://shiny.rstudio.com/
-#
+#################################################################################################
+############################ Packages ###########################################################
+#################################################################################################
 
+if(!"shiny" %in% installed.packages()) 
+{ 
+    install.packages("shiny") 
+}
 library(shiny)
 
-# Custom packages
+if(!"rstanarm" %in% installed.packages()) 
+{ 
+    install.packages("rstanarm") 
+}
 library(rstanarm)
+
+if(!"ggplot2" %in% installed.packages()) 
+{ 
+    install.packages("ggplot2") 
+}
 library(ggplot2)
+
+if(!"bayesplot" %in% installed.packages()) 
+{ 
+    install.packages("bayesplot") 
+}
 library(bayesplot)
 theme_set(bayesplot::theme_default())
+
 # options(mc.cores = 4) 
+
+if(!"dplyr" %in% installed.packages()) 
+{ 
+    install.packages("dplyr") 
+}
 library(dplyr)
+
+if(!"tidyr" %in% installed.packages()) 
+{ 
+    install.packages("tidyr") 
+}
 library(tidyr)
-library(gridExtra)
+
+if(!"shinycssloaders" %in% installed.packages()) 
+{ 
+    install.packages("shinycssloaders") 
+}
 library(shinycssloaders)
+
+#################################################################################################
+############################ Server function ####################################################
+#################################################################################################
 
 # Define server logic required to draw a histogram
 server <- function(input, output, session) {
+    
+    # Define a reactive input field
     contentsrea <- reactive({
         inFile <- input$datafile
         if (is.null(inFile))
             return(NULL)
         read.csv(inFile$datapath, header = TRUE)
     })
+    
+    # Create an observer for the inputs
     observe({
         updateSelectInput(session, "var1", choices = names(contentsrea()), selected = names(contentsrea())[3])
         updateSelectInput(session, "var2", choices = names(contentsrea()), selected = names(contentsrea())[4])
         updateSelectInput(session, "stratum", choices = names(contentsrea()), selected = names(contentsrea())[2])
     })
     
-    output$maintable <- momentMainTable <- renderTable(NULL)
+    # Initialize main output
+    output$maintable <- renderTable({
+        x <- data.frame(method = c("No stratification", "Method of moments", "Weighting", "Multilevel regression with poststratification"), x1 = rep(NA, 4), x2 = rep(NA, 4), x3 = rep(NA, 4))
+        colnames(x) <- c("", "Expected relative taint", "Std. Deviation taint", "Upper bound relative taint")
+        x
+    }, striped = TRUE, na = ".")
+    
+    # Initialize main moment output
     output$momentMainTable <- renderTable(NULL)
+    
+    # Initialize main weighting output
     output$weightingMainTable <- renderTable(NULL)
+    
+    # Initialize main post stratification output
     output$postMainTable <- renderTable(NULL)
     output$postPlot <- renderPlot(NULL)
     output$postStratumTable <- renderTable(NULL)
@@ -105,15 +151,15 @@ server <- function(input, output, session) {
                 compare2 <- ggplot()+
                     geom_hline(yintercept = mean(sample$taint),size=.8)+
                     geom_text(aes(x = 5.2, y = mean(sample$taint)+.025, label = "No stratification"), size = 2.5)+
-                    scale_x_continuous(name = "", labels = NULL) + 
-                    scale_y_continuous(breaks = yBreaks, limits= range(yBreaks))+
+                    scale_x_continuous(name = "Population") + 
+                    scale_y_continuous(name = "", breaks = yBreaks, limits= range(yBreaks))+
                     theme_bw()+
-                    labs(x="Population",y="")+
                     theme(legend.position="none",
                           axis.text.y=element_text(size=10),
-                          axis.text.x=element_text(size = 10),
+                          axis.text.x=element_text(colour="white"),
                           legend.title=element_text(size=10),
-                          legend.text=element_text(size=10))
+                          legend.text=element_text(size=10), 
+                          axis.ticks.x = element_blank())
                 
                 #################################################################################################
                 ############################ Main table #########################################################
@@ -130,7 +176,7 @@ server <- function(input, output, session) {
                     colnames(table) <- c("", "Expected relative taint", "Std. Deviation taint", "Upper bound relative taint")    
                     table
                     
-                })
+                }, striped = T, na = ".")
                 
                 #################################################################################################
                 ############################ Individual strata table ############################################
