@@ -49,17 +49,17 @@ ui <- fluidPage(
             
             p(id = "text1", "This is an application exploring stratification in an audit setting. Upload some data and inspect your sample. Your file must be in .csv format to upload, have ';' as the cell separator and use ',' as a decimal separator."),
             
-            fileInput(inputId = "datafile", label = "Upload a data file", multiple = FALSE, placeholder = "No file selected", accept = "csv", buttonLabel = "Step 1: Data"),
-            
-            #selectInput(inputId = "var1", label = "Ist variable", choices = ""),
-            selectInput(inputId = "var2", label = "Taint variable", choices = ""),
-            selectInput(inputId = "stratum", label = "Stratum variable", choices = ""),
-            
+            fileInput(inputId = "datafile", label = "", multiple = FALSE, placeholder = "No file selected", accept = "csv", buttonLabel = "Step 1: Upload data"),
+   
             sliderInput(inputId = "confidence", label = "Confidence for upper bound:",
                         min = 0.8, 
                         max = 0.999,
                         value = 0.95, 
                         step = 0.01),
+                     
+            selectInput(inputId = "var2", label = "Taint variable", choices = ""),
+            selectInput(inputId = "stratum", label = "Stratum variable", choices = ""),
+            
             sliderInput(inputId = "iter", label = "Number of iterations:", 
                         value = 5000, 
                         min = 500, 
@@ -71,7 +71,7 @@ ui <- fluidPage(
             uiOutput(outputId = "out"),
             
             actionButton(inputId = "refresh", label = "Step 2: Stratum sizes", icon = icon("shapes")),
-            actionButton(inputId = "update", label = "Step 3: Run", icon = icon("running"))
+            actionButton(inputId = "update", label = "Step 3: Run!", icon = icon("running"))
         ),
         mainPanel(
             tabsetPanel(

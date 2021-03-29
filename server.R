@@ -76,7 +76,6 @@ server <- function(input, output, session) {
     
     # Create an observer for the inputs
     observe({
-        #updateSelectInput(session, "var1", choices = names(contentsrea()), selected = names(contentsrea())[3])
         updateSelectInput(session, "var2", choices = names(contentsrea()), selected = names(contentsrea())[4])
         updateSelectInput(session, "stratum", choices = names(contentsrea()), selected = names(contentsrea())[2])
     })
@@ -161,10 +160,8 @@ server <- function(input, output, session) {
                 incProgress(1/steps, detail = "Reading data [1/12]")
                 
                 df <- read.csv(input$datafile$datapath, header = TRUE)
-                #ist <- df[, which(colnames(df) == input$var1)]
                 taint <- df[, which(colnames(df) == input$var2)]
                 stratum <- df[, which(colnames(df) == input$stratum)]
-                #sample <- data.frame(ist = ist, taint = taint, stratum = stratum)
                 sample <- data.frame(taint = taint, stratum = stratum)
                 
                 #################################################################################################
@@ -194,9 +191,9 @@ server <- function(input, output, session) {
                 incProgress(1/steps, detail = "Fitting Weighting model [4/12]")
                 
                 incProgress(1/steps, detail = "Fitting MRP model [5/12]")
-                
+      
                 sample_alt <- sample %>% group_by(stratum) %>% summarise(N_errors = sum(taint), N = n()) %>% ungroup()
-                fit <- stan_glmer(cbind(N_errors, N - N_errors) ~ (1 | stratum), family = binomial("logit"), data = sample_alt)
+                fit <- stan_glmer(cbind(N_errors, N - N_errors) ~ (1 | stratum), family = binomial("logit"), data = sample_alt, iter = input$iter)
                 pp <- posterior_predict(fit, newdata = poststrat)
                 
                 posterior_prob <- posterior_epred(fit, draws = 1000, newdata = poststrat)
@@ -250,17 +247,15 @@ server <- function(input, output, session) {
                     dat$Var1 <- as.numeric(dat$Var1)
                     yBreaks <- pretty(c(0, max(dat$Freq)), min.n = 4)
                     p1 <- ggplot(data = dat, mapping = aes(x = Var1, y = Freq)) +
-                        geom_bar(fill = "darkred", colour = "black", stat = "identity") +
+                        geom_bar(fill = "#FFB682", colour = "black", stat = "identity") +
                         labs(title = "Posterior predictive distribution") +
-                        scale_y_continuous(name = "", limits = range(yBreaks), breaks = yBreaks) +
+                        scale_y_continuous(name = "Probability", limits = c(0, max(yBreaks)), breaks = yBreaks, labels = round(yBreaks/(input$iter * 4), 3)) +
                         scale_x_continuous(name = "Predicted errors in population (beta-binomial)") +
-                        theme_bw() +
-                        theme(axis.text.y = element_blank(),
-                              axis.ticks.y = element_blank())
+                        theme_bw()
                     
                     dat <- data.frame(x = as.numeric(unlist(poststrat_prob)))
                     p2 <- ggplot(data = dat, mapping = aes(x = x)) +
-                        geom_density(fill = "darkred", colour = "black", alpha = 0.8) +
+                        geom_density(fill = "#FFB682", colour = "black", alpha = 0.8) +
                         labs(title = "Posterior distribution (of the linear predictor)") +
                         scale_y_continuous(name = "") +
                         scale_x_continuous(name = "Error probability in population") +
@@ -314,13 +309,11 @@ server <- function(input, output, session) {
                         dat$Var1 <- as.numeric(dat$Var1)
                         yBreaks <- pretty(c(0, max(dat$Freq)), min.n = 4)
                         plotList[[i]] <- ggplot(data = dat, mapping = aes(x = Var1, y = Freq)) +
-                            geom_bar(fill = "darkred", colour = "black", stat = "identity") +
+                            geom_bar(fill = "#FFB682", colour = "black", stat = "identity") +
                             labs(title = paste0("Posterior predictive distribution for stratum ", i, " (N = ", sizes[i], ")")) +
-                            scale_y_continuous(name = "", limits = range(yBreaks), breaks = yBreaks) +
+                            scale_y_continuous(name = "Probability", limits = c(0, max(yBreaks)), breaks = yBreaks, labels = round(yBreaks/(input$iter * 4), 3)) +
                             scale_x_continuous(name = "Predicted errors in stratum (beta-binomial)") +
-                            theme_bw() +
-                            theme(axis.text.y = element_blank(),
-                                  axis.ticks.y = element_blank())
+                            theme_bw()
                     }
                     n <- length(plotList)
                     nCol <- floor(sqrt(n))
@@ -346,12 +339,12 @@ server <- function(input, output, session) {
                         scale_colour_manual(values=c('#1f78b4','#33a02c','#e31a1c','#ff7f00',
                                                      '#8856a7')) + 
                         geom_point(data=stratumtable, mapping=aes(x=stratum, y=stratum_est),
-                                   inherit.aes=TRUE,colour='darkred')+
+                                   inherit.aes=TRUE,colour='#FFB682')+
                         geom_line(data=stratumtable, mapping=aes(x=stratum, y=stratum_est,group=1),
-                                  inherit.aes=TRUE,colour='darkred')+
+                                  inherit.aes=TRUE,colour='#FFB682')+
                         geom_ribbon(data=stratumtable,mapping=aes(x=stratum,ymin=stratum_est-stratum_sd,
                                                                   ymax=stratum_est+stratum_sd,group=1),
-                                    inherit.aes=FALSE,fill='darkred',alpha=.3) +
+                                    inherit.aes=FALSE,fill='#FFB682',alpha=.3) +
                         theme_bw()+
                         labs(x="Stratum",y="Average taint")+
                         theme(legend.position="none",
@@ -366,8 +359,8 @@ server <- function(input, output, session) {
                         geom_text(aes(x = 5.2, y = mean(sample$taint)+.025, label = "No stratification"), size = 2.5)+
                         scale_x_continuous(name = "Average taint") +
                         scale_y_continuous(name = "", breaks = yBreaks, limits= range(yBreaks))+
-                        geom_hline(yintercept = mean(poststrat_prob), colour = 'darkred', size = 1) +
-                        geom_text(aes(x = 5.2, y = mean(poststrat_prob) + .025), label = "MRP", colour = 'darkred') +
+                        geom_hline(yintercept = mean(poststrat_prob), colour = '#FFB682', size = 1) +
+                        geom_text(aes(x = 5.2, y = mean(poststrat_prob) + .025), label = "MRP", colour = '#FFB682') +
                         theme_bw()+
                         theme(legend.position="none",
                               axis.text.y=element_text(size=10),
