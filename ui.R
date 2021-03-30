@@ -64,13 +64,13 @@ ui <- fluidPage(
             
             p(id = "text1", "Step 1: Upload your data file via the Browse button. Your data must be in CSV (.csv) format, have a comma (,) as the cell separator, and have a dot (.) as a decimal separator."),
             p(id = "text2", "Step 2: Select the taint variable and the stratum variable."),
-            p(id = "text3", "Step 3: Adjust the sizes of the strata in the population."),
+            p(id = "text3", "Step 3: Adjust the population sizes of the strata at the bottom."),
             p(id = "text4", "Step 4: Click run and compare the various evaluation methods."),
             br(),
             fileInput(inputId = "datafile", label = "Data file", multiple = FALSE, placeholder = "No file selected", accept = "csv"),
-                     
-            selectInput(inputId = "var2", label = "Taint variable", choices = ""),
-            selectInput(inputId = "stratum", label = "Stratum variable", choices = ""),
+            
+            selectInput(inputId = "var2", label = "Taint variable (0 or 1)", choices = ""),
+            selectInput(inputId = "stratum", label = "Stratum variable (1, 2, 3, ...)", choices = ""),
             
             sliderInput(inputId = "confidence", label = "Confidence for upper bound:",
                         min = 0.8, 
@@ -79,7 +79,7 @@ ui <- fluidPage(
                         step = 0.01),
             
             sliderInput(inputId = "iter", label = "Number of iterations", 
-                        value = 3000, 
+                        value = 5000, 
                         min = 500, 
                         max = 10000, 
                         step = 100),
@@ -115,8 +115,9 @@ ui <- fluidPage(
                 tabPanel(title = "Method of Moments",
                          icon = icon("confluence"),
                          h3("Method of Moments"),
+                         p("The method of moments procedure aggregates the mean and variance of the beta distributions of the individual strata and computes the parameters of the (beta) group distribution using the moment estimator (Stewart 2013)."),
                          h3("Inference on the Population"),
-                         p("Inference on the population can be performed using the moment-aggregated posterior distribution on the taintings."),
+                         p("Inference on the population can be performed using the moment-aggregated posterior distribution."),
                          shinycssloaders::withSpinner(tableOutput(outputId = "momentMainTable"), color = "darkred", type = 4, size = 1),
                          shinycssloaders::withSpinner(plotOutput(outputId = "momentMainFigure"), color = "darkred", type = 4, size = 1),
                          h3("Inference on Individual Strata"),
@@ -131,9 +132,19 @@ ui <- fluidPage(
                 tabPanel(title = "Weighting",
                          icon = icon("balance-scale-right"),
                          h3("Weighting"),
+                         p("The weighting method assigns a weight to each stratum according to how much of the stratum is seen in the sample. The taints in each stratum are counted according to these weights to form the weighted posterior distribution."),
                          h3("Inference on the Population"),
+                         p("Inference on the population can be performed using the weighted posterior distribution."),
                          shinycssloaders::withSpinner(tableOutput(outputId = "weightingMainTable"), color = "#008000", type = 4, size = 1),
-                         h3("Inference on Individual Strata")
+                         shinycssloaders::withSpinner(plotOutput(outputId = "weightingMainFigure"), color = "#008000", type = 4, size = 1),
+                         h3("Inference on Individual Strata"),
+                         p("Inference on the population can be performed using the weighted posterior distribution for each stratum."),
+                         shinycssloaders::withSpinner(tableOutput(outputId = "weightingStratumTable"), color = "#008000", type = 4, size = 1),
+                         shinycssloaders::withSpinner(plotOutput(outputId = "weightingStratumFigure"), color = "#008000", type = 4, size = 1),
+                         h3("Predictions for Individual Strata"),
+                         p("Predictions for the individual strata can be made using the weighted posterior predictive distributions for each stratum."),
+                         shinycssloaders::withSpinner(tableOutput(outputId = "weightingStratumPredictions"), color = "#008000", type = 4, size = 1),
+                         shinycssloaders::withSpinner(plotOutput(outputId = "weightingPredictionsFigure"), color = "#008000", type = 4, size = 1)
                 ),
                 tabPanel(title = "MRP",
                          icon = icon("layer-group"),
