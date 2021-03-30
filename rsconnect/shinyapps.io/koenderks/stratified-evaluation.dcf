@@ -5,9 +5,9 @@ account: koenderks
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 3881516
-bundleId: 4409150
+bundleId: 4411271
 url: https://koenderks.shinyapps.io/stratified-evaluation/
-when: 1617051567.13978
+when: 1617103645.02713
 asMultiple: FALSE
 asStatic: FALSE
 ignoredFiles: README.md|Sample1.csv|Sample2.csv|Sample3.csv|Sample4.csv|Sample5.csv
