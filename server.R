@@ -227,14 +227,14 @@ server <- function(input, output, session) {
                 for (i in 1:length(levels(as.factor(sample$stratum)))) {
                     level <- levels(as.factor(sample$stratum))[i]
                     s_i <- sample[sample$stratum == i, ]
-                    s_n[i] <- nrow(sample)
+                    s_n[i] <- nrow(s_i)
                     sum_s[i] <- sum(s_i$taint)
                     mean_s[i] <- mean(s_i$taint)
                     sd_s[i] <- sd(s_i$taint)
                     alpha_s[i] <- 1 + sum_s[i]
                     beta_s[i] <- 1 + s_n[i] - sum_s[i]
                     mean_d[i] <- alpha_s[i] / (alpha_s[i] + beta_s[i])
-                    var_d[i] <- (alpha_s[i] * beta_s[i]) / ((alpha_s[i] * beta_s[i])^2 * (alpha_s[i] * beta_s[i] + 1))
+                    var_d[i] <- (alpha_s[i] * beta_s[i]) / ((alpha_s[i] * beta_s[i])^2 * (alpha_s[i] + beta_s[i] + 1))
                 }
 
                 # 3. Calculate the mean and variance of the aggregated beta distribution (Stewart 2013, p. 67)
@@ -574,7 +574,7 @@ server <- function(input, output, session) {
                         geom_ribbon(data=stratumtable,mapping=aes(x=stratum,ymin=stratum_est-stratum_sd, ymax=stratum_est+stratum_sd), inherit.aes=FALSE,fill='#FFB682',alpha=.3) +
                       geom_point(mapping=aes(x=1:noStrata, y=mean_d), inherit.aes=TRUE,colour='darkred', size = 1.5)+
                       geom_line(mapping=aes(x=1:noStrata, y=mean_d), inherit.aes=TRUE,colour='darkred')+
-                      geom_ribbon(mapping=aes(x=1:noStrata,ymin=mean_d-sqrt(var_d), ymax=mean_d+sqrt(var_d)), inherit.aes=FALSE,fill='darkred',alpha=.3) +
+                      geom_ribbon(mapping=aes(x=1:noStrata,ymin=mean_d-sqrt(mean_d * (1 - mean_d) / s_n), ymax=mean_d+sqrt(mean_d * (1 - mean_d) / s_n)), inherit.aes=FALSE,fill='darkred',alpha=.3) +
                         theme_bw()+
                         labs(x="Stratum",y="Average taint")+
                         theme(legend.position="none",
