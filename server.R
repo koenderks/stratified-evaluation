@@ -227,20 +227,29 @@ server <- function(input, output, session) {
                 for (i in 1:length(levels(as.factor(sample$stratum)))) {
                     level <- levels(as.factor(sample$stratum))[i]
                     s_i <- sample[sample$stratum == i, ]
-                    s_n[i] <- length(s_i$taint)
+                    s_n[i] <- nrow(sample)
                     sum_s[i] <- sum(s_i$taint)
                     mean_s[i] <- mean(s_i$taint)
                     sd_s[i] <- sd(s_i$taint)
-                    alpha_s[i] <- 1 + sum(s_i$taint)
-                    beta_s[i] <- 1 + length(s_i$taint) - sum(s_i$taint)
+                    alpha_s[i] <- 1 + sum_s[i]
+                    beta_s[i] <- 1 + s_n[i] - sum_s[i]
                     mean_d[i] <- alpha_s[i] / (alpha_s[i] + beta_s[i])
                     var_d[i] <- (alpha_s[i] * beta_s[i]) / ((alpha_s[i] * beta_s[i])^2 * (alpha_s[i] * beta_s[i] + 1))
                 }
 
-                # 3. Calculate the parameters of the moment-aggregated beta distribution
-                # This is still wrong.... ??
-                momentAlpha <- mean(mean_d) * ( ( (mean(mean_d) * (1 - mean(mean_d))) / var(mean_d)) - 1)
-                momentBeta <- (momentAlpha * (1 - mean(mean_d))) / mean(mean_d)
+                # 3. Calculate the mean and variance of the aggregated beta distribution (Stewart 2013, p. 67)
+                Y <- 1#s_n
+                alpha_s <- c(1, 4)
+                beta_s <- c(151, 98)
+                exi <- sum(Y * (alpha_s / (alpha_s + beta_s)))
+                varxi <- sum(Y^2 * ((alpha_s * beta_s) / ((alpha_s + beta_s)^2 * (alpha_s + beta_s + 1))) )
+                
+                # 4. Calculate the parameters of the aggregated beta distribution with the method of moments (Stewart 2013, p.64)
+                # Why does this go wrong???
+                Y <- 1#sum(s_n)
+                pplusq <- (((exi / Y) * (1 - (exi / Y))) / (varxi / Y^2)) - 1 
+                momentAlpha <- (( (exi / Y)^2 * (1 - (exi / Y)) ) / (varxi / Y^2) ) - (exi / Y)
+                momentBeta <- pplusq - momentAlpha
                 
                 # 4. Calculate the mean and upper bound of the beta distribution
                 momentMean <- momentAlpha / (momentAlpha + momentBeta)
@@ -559,7 +568,7 @@ server <- function(input, output, session) {
                         geom_ribbon(aes(ymin=y_mean-y_sd,ymax=y_mean+y_sd,x=stratum),fill='#4682b4',alpha=.7)+
                         geom_line(aes(x=stratum, y=y_mean), col = "#4682b4")+
                         geom_point(col = "#4682b4", size = 1.5)+
-                        scale_y_continuous(breaks = yBreaks, limits = range(yBreaks))+
+                        scale_y_continuous(breaks = yBreaks, limits= range(yBreaks))+
                         geom_point(data=stratumtable, mapping=aes(x=stratum, y=stratum_est), inherit.aes=TRUE,colour='#FFB682', size = 1.5)+
                         geom_line(data=stratumtable, mapping=aes(x=stratum, y=stratum_est,group=1), inherit.aes=TRUE,colour='#FFB682')+
                         geom_ribbon(data=stratumtable,mapping=aes(x=stratum,ymin=stratum_est-stratum_sd, ymax=stratum_est+stratum_sd), inherit.aes=FALSE,fill='#FFB682',alpha=.3) +
@@ -576,6 +585,7 @@ server <- function(input, output, session) {
                               legend.text=element_text(size=10),
                               panel.grid = element_blank())
                     
+                    yBreaks <- pretty(c(0, max(meanTaint, postMean, momentMean) + .025), min.n = 4)
                     compare2 <- ggplot()+
                         geom_hline(yintercept = meanTaint, size = 1, col = "#4682b4")+
                         geom_text(aes(x = 5.2, y = meanTaint +.025, label = "No stratification"), size = 3, col = "#4682b4")+
