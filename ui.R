@@ -121,9 +121,11 @@ ui <- fluidPage(
                          shinycssloaders::withSpinner(plotOutput(outputId = "momentMainFigure"), color = "darkred", type = 4, size = 1),
                          h3("Inference on Individual Strata"),
                          p("Inference on the individual strata can be performed using the posterior distributions for each stratum."),
+                         shinycssloaders::withSpinner(tableOutput(outputId = "momentStratumTable"), color = "darkred", type = 4, size = 1),
                          shinycssloaders::withSpinner(plotOutput(outputId = "momentStratumFigure"), color = "darkred", type = 4, size = 1),
                          h3("Predictions for Individual Strata"),
                          p("Predictions for the individual strata can be made using the posterior predictive distributions for each stratum."),
+                         shinycssloaders::withSpinner(tableOutput(outputId = "momentStratumPredictions"), color = "darkred", type = 4, size = 1),
                          shinycssloaders::withSpinner(plotOutput(outputId = "momentPredictionsFigure"), color = "darkred", type = 4, size = 1)
                 ),
                 tabPanel(title = "Weighting",

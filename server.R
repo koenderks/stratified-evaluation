@@ -103,7 +103,7 @@ server <- function(input, output, session) {
     # Initialize main output
     output$maintable <- renderTable({
         x <- data.frame(method = c("No stratification", "Method of moments", "Weighting", "Multilevel regression with poststratification"), x1 = rep(NA, 4), x2 = rep(NA, 4))
-        colnames(x) <- c("", "Most likely error", paste0(round(input$confidence * 100, 2), "% Upper bound"))
+        colnames(x) <- c("", "Expected relative error", paste0(round(input$confidence * 100, 2), "% Upper bound"))
         x
     }, striped = TRUE, na = ".")
     
@@ -125,7 +125,7 @@ server <- function(input, output, session) {
     output$noMainTable <- renderTable({
       
       df <- data.frame(name = "No stratification", mean = NA, bound = NA)
-      colnames(df) <- c("", "Most likely error", paste0(round(input$confidence * 100, 2), "% Upper bound"))
+      colnames(df) <- c("", "Expected relative error", paste0(round(input$confidence * 100, 2), "% Upper bound"))
       df
       
     }, striped = T, na = ".")
@@ -135,19 +135,21 @@ server <- function(input, output, session) {
     output$momentMainTable <- renderTable({
         
         df <- data.frame(name = "Method of moments", mean = NA, bound = NA)
-        colnames(df) <- c("", "Most likely error", paste0(round(input$confidence * 100, 2), "% Upper bound"))
+        colnames(df) <- c("", "Expected relative error", paste0(round(input$confidence * 100, 2), "% Upper bound"))
         df
         
     }, striped = T, na = ".")
     output$momentMainFigure <- renderPlot(NULL)
+    output$momentStratumTable <- renderTable(NULL)
     output$momentStratumFigure <- renderPlot(NULL)
+    output$momentStratumPredictions <- renderTable(NULL)
     output$momentPredictionsFigure <- renderPlot(NULL)
     
     # Initialize main weighting output
     output$weightingMainTable <- renderTable({
         
         df <- data.frame(name = "Weighting", mean = NA, bound = NA)
-        colnames(df) <- c("", "Most likely error", paste0(round(input$confidence * 100, 2), "% Upper bound"))
+        colnames(df) <- c("", "Expected relative error", paste0(round(input$confidence * 100, 2), "% Upper bound"))
         df
         
     }, striped = T, na = ".")
@@ -156,7 +158,7 @@ server <- function(input, output, session) {
     output$mrpMainTable <- renderTable({
         
         df <- data.frame(name = "Multilevel regression with poststratification", mean = NA, sd = NA, bound = NA)
-        colnames(df) <- c("", "Most likely error", "Std. Deviation taint", paste0(round(input$confidence * 100, 2), "% Upper bound"))
+        colnames(df) <- c("", "Expected relative error", "Std. Deviation taint", paste0(round(input$confidence * 100, 2), "% Upper bound"))
         df
         
     }, striped = T, na = ".")
@@ -238,15 +240,12 @@ server <- function(input, output, session) {
                 }
 
                 # 3. Calculate the mean and variance of the aggregated beta distribution (Stewart 2013, p. 67)
-                Y <- 1#s_n
-                alpha_s <- c(1, 4)
-                beta_s <- c(151, 98)
+                Y <- sizes
                 exi <- sum(Y * (alpha_s / (alpha_s + beta_s)))
                 varxi <- sum(Y^2 * ((alpha_s * beta_s) / ((alpha_s + beta_s)^2 * (alpha_s + beta_s + 1))) )
                 
                 # 4. Calculate the parameters of the aggregated beta distribution with the method of moments (Stewart 2013, p.64)
-                # Why does this go wrong???
-                Y <- 1#sum(s_n)
+                Y <- sum(sizes)
                 pplusq <- (((exi / Y) * (1 - (exi / Y))) / (varxi / Y^2)) - 1 
                 momentAlpha <- (( (exi / Y)^2 * (1 - (exi / Y)) ) / (varxi / Y^2) ) - (exi / Y)
                 momentBeta <- pplusq - momentAlpha
@@ -266,7 +265,7 @@ server <- function(input, output, session) {
                 
                 # 2. Fit the stan model to the sample data
                 fit <- stan_glmer(cbind(N_errors, N - N_errors) ~ (1 | stratum), family = binomial("logit"), data = sample_alt, iter = input$iter)
-                
+
                 # 3. Predict the post-stratified data
                 posterior_prob <- posterior_epred(fit, draws = 1000, newdata = poststrat) # Posterior estimates for error probability given the proportion of items in the population in each level of the factors included in the model.
                 poststrat_prob <- posterior_prob %*% poststrat$N / sum(poststrat$N)       # Adjust these (according to https://cran.r-project.org/web/packages/rstanarm/vignettes/mrp.html)
@@ -300,7 +299,7 @@ server <- function(input, output, session) {
                     table <- rbind(table, data.frame(method = "Method of moments", mle = round(momentMean, 4), ub = round(momentBound, 4)))
                     table <- rbind(table, data.frame(method = "Weighting", mle = NA, ub = NA))
                     table <- rbind(table, data.frame(method = "Multilevel regression with poststratification", mle = round(postMean, 4), ub = round(postBound, 4)))
-                    colnames(table) <- c("", "Most likely error", paste0(round(input$confidence * 100, 2), "% Upper bound"))
+                    colnames(table) <- c("", "Expected relative error", paste0(round(input$confidence * 100, 2), "% Upper bound"))
                     table
                     
                 }, striped = T, na = ".")
@@ -312,7 +311,7 @@ server <- function(input, output, session) {
                 output$noMainTable <- renderTable({
                   
                   table <- data.frame(method = "No stratification", mle = round(meanTaint, 4), ub = round(ubTaint, 4))
-                  colnames(table) <- c("", "Most likely error", paste0(round(input$confidence * 100, 2), "% Upper bound"))
+                  colnames(table) <- c("", "Expected relative error", paste0(round(input$confidence * 100, 2), "% Upper bound"))
                   table
                 }, striped = T, na = ".")
                 
@@ -349,7 +348,7 @@ server <- function(input, output, session) {
                 output$momentMainTable <- renderTable({
                   
                   table <- data.frame(method = "Method of moments", mle = round(momentMean, 4), ub = round(momentBound, 4))
-                  colnames(table) <- c("", "Most likely error", paste0(round(input$confidence * 100, 2), "% Upper bound"))
+                  colnames(table) <- c("", "Expected relative error", paste0(round(input$confidence * 100, 2), "% Upper bound"))
                   table
                 }, striped = T, na = ".")
 
@@ -377,6 +376,37 @@ server <- function(input, output, session) {
                     
                     p <- grid.arrange(p1, p2, nrow = 1)
                 })
+                
+                momentstratumtable <- data.frame(
+                          stratum = 1:noStrata,
+                          N = rep(-1, noStrata),
+                          stratum_sample = rep(-1, noStrata),
+                          stratum_sample_sd = rep(-1, noStrata),
+                          stratum_population_n = sizes,
+                          stratum_est = rep(-1, noStrata),
+                          stratum_sd = rep(-1, noStrata),
+                          stratum_ub = rep(-1, noStrata),
+                          stratum_pred_mean = rep(-1, noStrata),
+                          stratum_pred_sd = rep(-1, noStrata),
+                          stratum_pred_ub = rep(-1, noStrata))
+
+                for(i in 1:noStrata) {
+                  momentstratumtable$N[i] <- length(sample$taint[sample$stratum == i])
+                  momentstratumtable$stratum_sample[i] <- round(mean(sample$taint[sample$stratum == i]), 3)
+                  momentstratumtable$stratum_sample_sd[i] <- round(sd(sample$taint[sample$stratum == i]), 3)
+                  momentstratumtable$stratum_est[i] <- round(mean_d[i], 3)
+                  momentstratumtable$stratum_sd[i] <- round(sqrt(var_d[i]), 3)
+                  momentstratumtable$stratum_ub[i] <- round(qbeta(input$confidence, alpha_s[i], beta_s[i]), 3) # Upper bound
+                  momentstratumtable$stratum_pred_mean[i] <- round((sizes[i] * alpha_s[i]) / (alpha_s[i] + beta_s[i]), 3)
+                  momentstratumtable$stratum_pred_sd[i] <- round(((sizes[i] * alpha_s[i] * beta_s[i]) * (alpha_s[i] + beta_s[i] + s_n[i])) / ((alpha_s[i] + beta_s[i])^2 * (alpha_s[i] + beta_s[i] + 1)), 3)
+                  momentstratumtable$stratum_pred_ub[i] <- round(jfa:::.qBetaBinom(p = input$confidence, N = sizes[i], shape1 = alpha_s[i], shape2 = beta_s[i]), 3)
+                }
+                
+                output$momentStratumTable <- renderTable({
+                  table <- momentstratumtable[, -(9:11)]
+                  colnames(table) <- c("Stratum", "Sample size", "Mean taint", "SD", "Population", "Estimated \u03BC", "Estimated \u03C3", paste0(round(input$confidence * 100, 2), "% Upper bound"))
+                  table
+                }, striped = T, na = ".")
                                 
                 output$momentStratumFigure <- renderPlot({
                   plotList <- list()
@@ -400,6 +430,12 @@ server <- function(input, output, session) {
                   nCol <- floor(sqrt(n))
                   do.call("grid.arrange", c(plotList, ncol=nCol))
                 })
+                
+                output$momentStratumPredictions <- renderTable({
+                  table <- momentstratumtable[, -(6:8)]
+                  colnames(table) <- c("Stratum", "Sample size", "Mean taint", "SD", "Population", "Predicted \u03BC", "Predicted \u03C3", paste0(round(input$confidence * 100, 2), "% Upper bound"))
+                  table
+                }, striped = T, na = ".")
                 
                 output$momentPredictionsFigure <- renderPlot({
                   plotList <- list()
@@ -432,7 +468,7 @@ server <- function(input, output, session) {
                 output$mrpMainTable <- renderTable({
                     
                     df <- data.frame(name = "Multilevel regression with poststratification", mean = round(mean(poststrat_prob), 3), sd = round(sd(poststrat_prob), 3), bound = as.numeric(quantile(poststrat_prob, probs = input$confidence)))
-                    colnames(df) <- c("", "Most likely error", "Std. Deviation taint", paste0(round(input$confidence * 100, 2), "% Upper bound"))
+                    colnames(df) <- c("", "Expected relative error", "Std. Deviation taint", paste0(round(input$confidence * 100, 2), "% Upper bound"))
                     df
 
                 }, striped = T, na = ".")
@@ -467,20 +503,19 @@ server <- function(input, output, session) {
                 incProgress(1/steps, detail = "Creating MRP sub table [9/12]")
                 
                 stratumtable <- data.frame(
-                    stratum = 1:length(unique(sample$stratum)),
-                    N = rep(-1, length(unique(sample$stratum)),
-                            stratum_sample = rep(-1, length(unique(sample$stratum))),
-                            stratum_sample_sd = rep(-1, length(unique(sample$stratum))),
-                            stratum_population_n = rep(-1, length(unique(sample$stratum))),
-                            stratum_est = rep(-1, length(unique(sample$stratum))),
-                            stratum_sd = rep(-1, length(unique(sample$stratum))),
-                            stratum_ub = rep(-1, length(unique(sample$stratum))),
-                            stratum_pred_mean = rep(-1, length(unique(sample$stratum))),
-                            stratum_pred_sd = rep(-1, length(unique(sample$stratum))),
-                            stratum_pred_ub = rep(-1, length(unique(sample$stratum))))
-                )
+                  stratum = 1:noStrata,
+                  N = rep(-1, noStrata),
+                  stratum_sample = rep(-1, noStrata),
+                  stratum_sample_sd = rep(-1, noStrata),
+                  stratum_population_n = sizes,
+                  stratum_est = rep(-1, noStrata),
+                  stratum_sd = rep(-1, noStrata),
+                  stratum_ub = rep(-1, noStrata),
+                  stratum_pred_mean = rep(-1, noStrata),
+                  stratum_pred_sd = rep(-1, noStrata),
+                  stratum_pred_ub = rep(-1, noStrata))
                 
-                for(i in 1:length(levels(as.factor(poststrat$stratum)))) {
+                for(i in 1:noStrata) {
                     poststrat_stratum <- poststrat[poststrat$stratum == i, ]
                     posterior_prob_stratum <- posterior_epred(fit, draws = 1000, newdata = as.data.frame(poststrat_stratum))
                     poststrat_prob_stratum <- (posterior_prob_stratum %*% poststrat_stratum$N) / sum(poststrat_stratum$N)
@@ -490,7 +525,6 @@ server <- function(input, output, session) {
                     stratumtable$N[i] <- length(sample$taint[sample$stratum == i])
                     stratumtable$stratum_sample[i] <- round(mean(sample$taint[sample$stratum == i]), 3)
                     stratumtable$stratum_sample_sd[i] <- round(sd(sample$taint[sample$stratum == i]), 3)
-                    stratumtable$stratum_population_n <- sizes
                     stratumtable$stratum_est[i] <- round(mean(poststrat_prob_stratum), 3)
                     stratumtable$stratum_sd[i] <- round(sd(poststrat_prob_stratum), 3)
                     stratumtable$stratum_ub[i] <- round(quantile(posterior_prob_stratum, probs = input$confidence), 3) # Upper bound
@@ -566,15 +600,15 @@ server <- function(input, output, session) {
                     
                     compare <- ggplot(data=taint_by_stratum, aes(x=stratum, y=y_mean, group=1)) +
                         geom_ribbon(aes(ymin=y_mean-y_sd,ymax=y_mean+y_sd,x=stratum),fill='#4682b4',alpha=.7)+
-                        geom_line(aes(x=stratum, y=y_mean), col = "#4682b4")+
-                        geom_point(col = "#4682b4", size = 1.5)+
+                        geom_line(aes(x=stratum, y=y_mean), col = "#4682b4", size = 1)+
+                        geom_point(fill = "#4682b4", size = 3, stroke = 1.5, color = "black", shape = 21) +
                         scale_y_continuous(breaks = yBreaks, limits= range(yBreaks))+
-                        geom_point(data=stratumtable, mapping=aes(x=stratum, y=stratum_est), inherit.aes=TRUE,colour='#FFB682', size = 1.5)+
-                        geom_line(data=stratumtable, mapping=aes(x=stratum, y=stratum_est,group=1), inherit.aes=TRUE,colour='#FFB682')+
-                        geom_ribbon(data=stratumtable,mapping=aes(x=stratum,ymin=stratum_est-stratum_sd, ymax=stratum_est+stratum_sd), inherit.aes=FALSE,fill='#FFB682',alpha=.3) +
-                      geom_point(mapping=aes(x=1:noStrata, y=mean_d), inherit.aes=TRUE,colour='darkred', size = 1.5)+
-                      geom_line(mapping=aes(x=1:noStrata, y=mean_d), inherit.aes=TRUE,colour='darkred')+
-                      geom_ribbon(mapping=aes(x=1:noStrata,ymin=mean_d-sqrt(mean_d * (1 - mean_d) / s_n), ymax=mean_d+sqrt(mean_d * (1 - mean_d) / s_n)), inherit.aes=FALSE,fill='darkred',alpha=.3) +
+                        geom_ribbon(data=stratumtable,mapping=aes(x=stratum,ymin=max(0, stratum_est-stratum_sd), ymax=stratum_est+stratum_sd), inherit.aes=FALSE,fill='#FFB682',alpha=.3) +
+                        geom_line(data=stratumtable, mapping=aes(x=stratum, y=stratum_est,group=1), inherit.aes=TRUE,colour='#FFB682', size = 1)+
+                        geom_point(data=stratumtable, mapping=aes(x=stratum, y=stratum_est), inherit.aes=TRUE,fill='#FFB682', size = 3, stroke = 1.5, color = "black", shape = 21)+
+                        geom_ribbon(mapping=aes(x=1:noStrata,ymin=ifelse(mean_d-sqrt(mean_d * (1 - mean_d) / s_n) >= 0, yes = mean_d-sqrt(mean_d * (1 - mean_d) / s_n), no = 0), ymax=mean_d+sqrt(mean_d * (1 - mean_d) / s_n)), inherit.aes=FALSE,fill='darkred',alpha=.3) +
+                        geom_line(mapping=aes(x=1:noStrata, y=mean_d), inherit.aes=TRUE,colour='darkred', size = 1)+
+                        geom_point(mapping=aes(x=1:noStrata, y=mean_d), inherit.aes=TRUE,fill='darkred', size = 3, stroke = 1.5, color = "black", shape = 21)+
                         theme_bw()+
                         labs(x="Stratum",y="Average taint")+
                         theme(legend.position="none",
@@ -589,7 +623,7 @@ server <- function(input, output, session) {
                     compare2 <- ggplot()+
                         geom_hline(yintercept = meanTaint, size = 1, col = "#4682b4")+
                         geom_text(aes(x = 5.2, y = meanTaint +.025, label = "No stratification"), size = 3, col = "#4682b4")+
-                        scale_x_continuous(name = "Most likely error") +
+                        scale_x_continuous(name = "Expected relative error") +
                         scale_y_continuous(name = "", breaks = yBreaks, limits= range(yBreaks))+
                         geom_hline(yintercept = postMean, colour = '#FFB682', size = 1) +
                         geom_text(aes(x = 5.2, y = postMean + .025), label = "MRP", colour = '#FFB682') +
