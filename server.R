@@ -183,9 +183,13 @@ server <- function(input, output, session) {
                 
                 alpha_s <- numeric()
                 beta_s <- numeric()
+                mean_s <- numeric()
+                sd_s <- numeric()
                 for (i in 1:length(levels(as.factor(sample$stratum)))) {
                     level <- levels(as.factor(sample$stratum))[i]
                     s_i <- sample[sample$stratum == i, ]
+                    mean_s[i] <- mean(s_i$taint)
+                    sd_s[i] <- sd(s_i$taint)
                     alpha_s[i] <- 1 + sum(s_i$taint)
                     beta_s[i] <- 1 + length(s_i$taint) - sum(s_i$taint)
                 }
@@ -207,6 +211,7 @@ server <- function(input, output, session) {
                 poststrat_prob <- posterior_prob %*% poststrat$N / sum(poststrat$N)
                 
                 postMean <- round(mean(poststrat_prob), 3)
+                # Upper bound is on the population parameter? Or should it be the sum of the posterior predictive bounds?
                 postBound <- as.numeric(quantile(poststrat_prob, probs = input$confidence))
                 
                 #################################################################################################
@@ -224,9 +229,9 @@ server <- function(input, output, session) {
                 output$maintable <- renderTable({
                     
                     table <- data.frame(method = "No stratification", mle = round(meanTaint, 3), ub = round(ubTaint, 3))
-                    table <- rbind(table, data.frame(method = "Method of moments", mle = momentMean, ub = momentBound))
+                    table <- rbind(table, data.frame(method = "Method of moments", mle = round(momentMean, 3), ub = round(momentBound, 3)))
                     table <- rbind(table, data.frame(method = "Weighting", mle = -1, ub = -1))
-                    table <- rbind(table, data.frame(method = "Multilevel regression with poststratification", mle = postMean, ub = postBound))
+                    table <- rbind(table, data.frame(method = "Multilevel regression with poststratification", mle = round(postMean, 3), ub = round(postBound, 3)))
                     colnames(table) <- c("", "Most likely error", paste0(round(input$confidence * 100, 2), "% Upper bound"))
                     table
                     
@@ -290,6 +295,8 @@ server <- function(input, output, session) {
                     poststrat_stratum <- poststrat[poststrat$stratum == i, ]
                     posterior_prob_stratum <- posterior_epred(fit, draws = 1000, newdata = as.data.frame(poststrat_stratum))
                     poststrat_prob_stratum <- (posterior_prob_stratum %*% poststrat_stratum$N) / sum(poststrat_stratum$N)
+                    
+                    #posterior_prob_stratum <- posterior_predict(fit, newdata = as.data.frame(poststrat_stratum))
                     
                     stratumtable$N[i] <- length(sample$taint[sample$stratum == i])
                     stratumtable$stratum_sample[i] <- round(mean(sample$taint[sample$stratum == i]), 3)
