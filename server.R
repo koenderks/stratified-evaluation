@@ -141,6 +141,7 @@ server <- function(input, output, session) {
     }, striped = T, na = ".")
     output$momentMainFigure <- renderPlot(NULL)
     output$momentStratumFigure <- renderPlot(NULL)
+    output$momentPredictionsFigure <- renderPlot(NULL)
     
     # Initialize main weighting output
     output$weightingMainTable <- renderTable({
@@ -288,7 +289,7 @@ server <- function(input, output, session) {
                     
                     table <- data.frame(method = "No stratification", mle = round(meanTaint, 4), ub = round(ubTaint, 4))
                     table <- rbind(table, data.frame(method = "Method of moments", mle = round(momentMean, 4), ub = round(momentBound, 4)))
-                    table <- rbind(table, data.frame(method = "Weighting", mle = -1, ub = -1))
+                    table <- rbind(table, data.frame(method = "Weighting", mle = NA, ub = NA))
                     table <- rbind(table, data.frame(method = "Multilevel regression with poststratification", mle = round(postMean, 4), ub = round(postBound, 4)))
                     colnames(table) <- c("", "Most likely error", paste0(round(input$confidence * 100, 2), "% Upper bound"))
                     table
@@ -309,7 +310,7 @@ server <- function(input, output, session) {
                 output$noMainFigure <- renderPlot({
                   p1 <- ggplot() +
                     stat_function(fun = dbeta, args = list(shape1 = 1, shape2 = 1), xlim = c(0, 1), color = "black", linetype = "dashed") +
-                    stat_function(fun = dbeta, args = list(shape1 = 1 + k, shape2 = 1 + n - k), xlim = c(0, 1), geom = "area", fill = "#FFB682", alpha = 0.8, color = "black") +
+                    stat_function(fun = dbeta, args = list(shape1 = 1 + k, shape2 = 1 + n - k), xlim = c(0, 1), geom = "area", fill = "#4682b4", alpha = 0.8, color = "black") +
                     labs(title = paste0("Prior and posterior distribution (\u03B1 = ", round(1 + k, 2), ", \u03B2 = ", round(1 + n - k, 2), ")")) +
                     scale_y_continuous(name = "Density") +
                     scale_x_continuous(name = "Error probability in population (beta)", limits = c(0,1), breaks = seq(0, 1, 0.2)) +
@@ -322,7 +323,7 @@ server <- function(input, output, session) {
                   dat <- data.frame(x = 1:length(dat), y = dat)
                   yBreaks <- pretty(c(0, dat$y), min.n = 4)
                   p2 <- ggplot(dat, aes(x = x, y = y)) + 
-                          geom_bar(fill = "#FFB682", colour = "black", stat = "identity") +
+                          geom_bar(fill = "#4682b4", colour = "black", stat = "identity") +
                           labs(title = paste0("Posterior predictive distribution (N = ", sum(sizes), ", \u03B1 = ", round(1 + k, 2), ", \u03B2 = ", round(1 + n - k, 2), ")")) +
                           scale_y_continuous(name = "Probability", limits = c(0, max(yBreaks)), breaks = yBreaks, labels = round(yBreaks, 3)) +
                           scale_x_continuous(name = "Predicted errors in population (beta-binomial)") +
@@ -345,8 +346,8 @@ server <- function(input, output, session) {
 
                 output$momentMainFigure <- renderPlot({
                     p1 <- ggplot() +
-                      stat_function(fun = dbeta, args = list(shape1 = momentAlpha, shape2 = momentBeta), xlim = c(0, 1), geom = "area", fill = "#FFB682", alpha = 0.8, color = "black") +
-                      labs(title = paste0("Moment aggregated posterior distribution (\u03B1 = ", round(momentAlpha, 2), ", \u03B2 = ", round(momentBeta, 2), ")")) +
+                      stat_function(fun = dbeta, args = list(shape1 = momentAlpha, shape2 = momentBeta), xlim = c(0, 1), geom = "area", fill = "darkred", alpha = 0.8, color = "black") +
+                      labs(title = paste0("Moment-aggregated posterior distribution (\u03B1 = ", round(momentAlpha, 2), ", \u03B2 = ", round(momentBeta, 2), ")")) +
                       scale_y_continuous(name = "Density") +
                       scale_x_continuous(name = "Error probability in population (beta)", limits = c(0,1), breaks = seq(0, 1, 0.2)) +
                       theme_bw() +
@@ -359,7 +360,7 @@ server <- function(input, output, session) {
                     dat <- data.frame(x = 1:length(dat), y = dat)
                     yBreaks <- pretty(c(0, dat$y), min.n = 4)
                     p2 <- ggplot(dat, aes(x = x, y = y)) + 
-                      geom_bar(fill = "#FFB682", colour = "black", stat = "identity") +
+                      geom_bar(fill = "darkred", colour = "black", stat = "identity") +
                       labs(title = paste0("Posterior predictive distribution (N = ", sum(sizes), ", \u03B1 = ", round(momentAlpha, 2), ", \u03B2 = ", round(momentBeta, 2), ")")) +
                       scale_y_continuous(name = "Probability", limits = c(0, max(yBreaks)), breaks = yBreaks, labels = round(yBreaks, 3)) +
                       scale_x_continuous(name = "Predicted errors in population (beta-binomial)") +
@@ -377,14 +378,36 @@ server <- function(input, output, session) {
 
                     plotList[[i]] <- ggplot() +
                       stat_function(fun = dbeta, args = list(shape1 = 1, shape2 = 1), xlim = c(0, 1), color = "black", linetype = "dashed") +
-                      stat_function(fun = dbeta, args = list(shape1 = s_alpha, shape2 = s_beta), xlim = c(0, 1), geom = "area", fill = "#FFB682", alpha = 0.8, color = "black") +
-                      labs(title = paste0("Prior and posterior distribution for stratum (\u03B1 = ", round(s_alpha, 2), ", \u03B2 = ", round(s_beta, 2), ")")) +
+                      stat_function(fun = dbeta, args = list(shape1 = s_alpha, shape2 = s_beta), xlim = c(0, 1), geom = "area", fill = "darkred", alpha = 0.8, color = "black") +
+                      labs(title = paste0("Prior and posterior distribution for stratum ", i, " (\u03B1 = ", round(s_alpha, 2), ", \u03B2 = ", round(s_beta, 2), ")")) +
                       scale_y_continuous(name = "Density") +
                       scale_x_continuous(name = "Error probability in stratum (beta)", limits = c(0,1), breaks = seq(0, 1, 0.2)) +
                       theme_bw() +
                       theme(axis.ticks.y = element_blank(),
                             panel.grid = element_blank(),
                             axis.text.y = element_blank())
+                  }
+                  n <- length(plotList)
+                  nCol <- floor(sqrt(n))
+                  do.call("grid.arrange", c(plotList, ncol=nCol))
+                })
+                
+                output$momentPredictionsFigure <- renderPlot({
+                  plotList <- list()
+                  for (i in 1:length(levels(as.factor(sample$stratum)))) {
+                    strat <- sample[sample$stratum == levels(as.factor(sample$stratum))[i], ]
+                    s_alpha <- 1 + sum(strat$taint) 
+                    s_beta <- 1 + length(strat$taint) - sum(strat$taint)
+                    dat <- jfa:::.dBetaBinom(0:1000, N = sizes[i], shape1 = s_alpha, shape2 = s_beta)
+                    dat <- dat[dat > 0.0001]
+                    dat <- data.frame(x = 1:length(dat), y = dat)
+                    yBreaks <- pretty(c(0, dat$y), min.n = 4)
+                    plotList[[i]] <- ggplot(dat, aes(x = x, y = y)) + 
+                      geom_bar(fill = "darkred", colour = "black", stat = "identity") +
+                      labs(title = paste0("Posterior predictive distribution for stratum ", i," (N = ", sizes[i], ", \u03B1 = ", round(s_alpha, 2), ", \u03B2 = ", round(s_beta, 2), ")")) +
+                      scale_y_continuous(name = "Probability", limits = c(0, max(yBreaks)), breaks = yBreaks, labels = round(yBreaks, 3)) +
+                      scale_x_continuous(name = "Predicted errors in population (beta-binomial)") +
+                      theme_bw()
                   }
                   n <- length(plotList)
                   nCol <- floor(sqrt(n))
@@ -484,7 +507,7 @@ server <- function(input, output, session) {
                       geom_density(fill = "#FFB682", colour = "black", alpha = 0.8) +
                       labs(title = paste0("Posterior distribution for stratum ", i)) +
                       scale_y_continuous(name = "Density") +
-                      scale_x_continuous(name = "Error probability in population", limits = c(0,1), breaks = seq(0, 1, 0.2)) +
+                      scale_x_continuous(name = "Error probability in stratum", limits = c(0,1), breaks = seq(0, 1, 0.2)) +
                       theme_bw() +
                       theme(axis.ticks.y = element_blank(),
                             panel.grid = element_blank())
@@ -533,19 +556,16 @@ server <- function(input, output, session) {
                     yBreaks <- pretty(c(0, 0.5), min.n = 4)
                     
                     compare <- ggplot(data=taint_by_stratum, aes(x=stratum, y=y_mean, group=1)) +
-                        geom_ribbon(aes(ymin=y_mean-y_sd,ymax=y_mean+y_sd,x=stratum),fill='lightgrey',alpha=.7)+
-                        geom_line(aes(x=stratum, y=y_mean))+
-                        geom_point()+
-                        scale_y_continuous(breaks = yBreaks, limits= range(yBreaks))+
-                        scale_colour_manual(values=c('#1f78b4','#33a02c','#e31a1c','#ff7f00',
-                                                     '#8856a7')) + 
-                        geom_point(data=stratumtable, mapping=aes(x=stratum, y=stratum_est),
-                                   inherit.aes=TRUE,colour='#FFB682')+
-                        geom_line(data=stratumtable, mapping=aes(x=stratum, y=stratum_est,group=1),
-                                  inherit.aes=TRUE,colour='#FFB682')+
-                        geom_ribbon(data=stratumtable,mapping=aes(x=stratum,ymin=stratum_est-stratum_sd,
-                                                                  ymax=stratum_est+stratum_sd,group=1),
-                                    inherit.aes=FALSE,fill='#FFB682',alpha=.3) +
+                        geom_ribbon(aes(ymin=y_mean-y_sd,ymax=y_mean+y_sd,x=stratum),fill='#4682b4',alpha=.7)+
+                        geom_line(aes(x=stratum, y=y_mean), col = "#4682b4")+
+                        geom_point(col = "#4682b4", size = 1.5)+
+                        scale_y_continuous(breaks = yBreaks, limits = range(yBreaks))+
+                        geom_point(data=stratumtable, mapping=aes(x=stratum, y=stratum_est), inherit.aes=TRUE,colour='#FFB682', size = 1.5)+
+                        geom_line(data=stratumtable, mapping=aes(x=stratum, y=stratum_est,group=1), inherit.aes=TRUE,colour='#FFB682')+
+                        geom_ribbon(data=stratumtable,mapping=aes(x=stratum,ymin=stratum_est-stratum_sd, ymax=stratum_est+stratum_sd), inherit.aes=FALSE,fill='#FFB682',alpha=.3) +
+                      geom_point(mapping=aes(x=1:noStrata, y=mean_d), inherit.aes=TRUE,colour='darkred', size = 1.5)+
+                      geom_line(mapping=aes(x=1:noStrata, y=mean_d), inherit.aes=TRUE,colour='darkred')+
+                      geom_ribbon(mapping=aes(x=1:noStrata,ymin=mean_d-sqrt(var_d), ymax=mean_d+sqrt(var_d)), inherit.aes=FALSE,fill='darkred',alpha=.3) +
                         theme_bw()+
                         labs(x="Stratum",y="Average taint")+
                         theme(legend.position="none",
@@ -557,12 +577,14 @@ server <- function(input, output, session) {
                               panel.grid = element_blank())
                     
                     compare2 <- ggplot()+
-                        geom_hline(yintercept = mean(sample$taint),size=.8)+
-                        geom_text(aes(x = 5.2, y = mean(sample$taint)+.025, label = "No stratification"), size = 3)+
+                        geom_hline(yintercept = meanTaint, size = 1, col = "#4682b4")+
+                        geom_text(aes(x = 5.2, y = meanTaint +.025, label = "No stratification"), size = 3, col = "#4682b4")+
                         scale_x_continuous(name = "Most likely error") +
                         scale_y_continuous(name = "", breaks = yBreaks, limits= range(yBreaks))+
-                        geom_hline(yintercept = mean(poststrat_prob), colour = '#FFB682', size = 1) +
-                        geom_text(aes(x = 5.2, y = mean(poststrat_prob) + .025), label = "MRP", colour = '#FFB682') +
+                        geom_hline(yintercept = postMean, colour = '#FFB682', size = 1) +
+                        geom_text(aes(x = 5.2, y = postMean + .025), label = "MRP", colour = '#FFB682') +
+                        geom_hline(yintercept = momentMean, colour = 'darkred', size = 1) +
+                        geom_text(aes(x = 5.2, y = momentMean + .025), label = "Moment", colour = 'darkred') +
                         theme_bw()+
                         theme(legend.position="none",
                               axis.text.y=element_text(size=10),
