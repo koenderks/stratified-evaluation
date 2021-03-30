@@ -102,7 +102,7 @@ server <- function(input, output, session) {
   
   # Initialize main output
   output$maintable <- renderTable({
-    x <- data.frame(method = c("No stratification", "Method of moments", "Weighting", "Multilevel regression with poststratification"), x1 = rep(NA, 4), x2 = rep(NA, 4))
+    x <- data.frame(method = c("1. No stratification", "2. Method of moments", "3. Weighting", "4. Multilevel regression with poststratification"), x1 = rep(NA, 4), x2 = rep(NA, 4))
     colnames(x) <- c("", "Expected relative error", paste0(round(input$confidence * 100, 2), "% Upper bound"))
     x
   }, striped = TRUE, na = ".")
@@ -124,7 +124,7 @@ server <- function(input, output, session) {
   # Initialize no stratification output
   output$noMainTable <- renderTable({
     
-    df <- data.frame(name = "No stratification", mean = NA, bound = NA)
+    df <- data.frame(name = "1. No stratification", mean = NA, bound = NA)
     colnames(df) <- c("", "Expected relative error", paste0(round(input$confidence * 100, 2), "% Upper bound"))
     df
     
@@ -134,7 +134,7 @@ server <- function(input, output, session) {
   # Initialize moment output
   output$momentMainTable <- renderTable({
     
-    df <- data.frame(name = "Method of moments", mean = NA, bound = NA)
+    df <- data.frame(name = "2. Method of moments", mean = NA, bound = NA)
     colnames(df) <- c("", "Expected relative error", paste0(round(input$confidence * 100, 2), "% Upper bound"))
     df
     
@@ -148,7 +148,7 @@ server <- function(input, output, session) {
   # Initialize main weighting output
   output$weightingMainTable <- renderTable({
     
-    df <- data.frame(name = "Weighting", mean = NA, bound = NA)
+    df <- data.frame(name = "3. Weighting", mean = NA, bound = NA)
     colnames(df) <- c("", "Expected relative error", paste0(round(input$confidence * 100, 2), "% Upper bound"))
     df
     
@@ -162,7 +162,7 @@ server <- function(input, output, session) {
   # Initialize main post stratification output
   output$mrpMainTable <- renderTable({
     
-    df <- data.frame(name = "Multilevel regression with poststratification", mean = NA, sd = NA, bound = NA)
+    df <- data.frame(name = "4. Multilevel regression with poststratification", mean = NA, sd = NA, bound = NA)
     colnames(df) <- c("", "Expected relative error", "Std. deviation", paste0(round(input$confidence * 100, 2), "% Upper bound"))
     df
     
@@ -329,10 +329,10 @@ server <- function(input, output, session) {
           
           output$maintable <- renderTable({
             
-            table <- data.frame(method = "No stratification", mle = round(meanTaint, 4), ub = round(ubTaint, 4))
-            table <- rbind(table, data.frame(method = "Method of moments", mle = round(momentMean, 4), ub = round(momentBound, 4)))
-            table <- rbind(table, data.frame(method = "Weighting", mle = round(weightedMean, 4), ub = round(weightedBound, 4)))
-            table <- rbind(table, data.frame(method = "Multilevel regression with poststratification", mle = round(postMean, 4), ub = round(postBound, 4)))
+            table <- data.frame(method = "1. No stratification", mle = round(meanTaint, 4), ub = round(ubTaint, 4))
+            table <- rbind(table, data.frame(method = "2. Method of moments", mle = round(momentMean, 4), ub = round(momentBound, 4)))
+            table <- rbind(table, data.frame(method = "3. Weighting", mle = round(weightedMean, 4), ub = round(weightedBound, 4)))
+            table <- rbind(table, data.frame(method = "4. Multilevel regression with poststratification", mle = round(postMean, 4), ub = round(postBound, 4)))
             colnames(table) <- c("", "Expected relative error", paste0(round(input$confidence * 100, 2), "% Upper bound"))
             table
             
@@ -346,7 +346,7 @@ server <- function(input, output, session) {
           
           output$noMainTable <- renderTable({
             
-            table <- data.frame(method = "No stratification", mle = round(meanTaint, 4), ub = round(ubTaint, 4))
+            table <- data.frame(method = "1. No stratification", mle = round(meanTaint, 4), ub = round(ubTaint, 4))
             colnames(table) <- c("", "Expected relative error", paste0(round(input$confidence * 100, 2), "% Upper bound"))
             table
           }, striped = T, na = ".")
@@ -386,7 +386,7 @@ server <- function(input, output, session) {
           
           output$momentMainTable <- renderTable({
             
-            table <- data.frame(method = "Method of moments", mle = round(momentMean, 4), ub = round(momentBound, 4))
+            table <- data.frame(method = "2. Method of moments", mle = round(momentMean, 4), ub = round(momentBound, 4))
             colnames(table) <- c("", "Expected relative error", paste0(round(input$confidence * 100, 2), "% Upper bound"))
             table
           }, striped = T, na = ".")
@@ -506,7 +506,7 @@ server <- function(input, output, session) {
           
           output$weightingMainTable <- renderTable({
             
-            df <- data.frame(name = "Weighting", mean = weightedMean, bound = weightedBound)
+            df <- data.frame(name = "3. Weighting", mean = weightedMean, bound = weightedBound)
             colnames(df) <- c("", "Expected relative error", paste0(round(input$confidence * 100, 2), "% Upper bound"))
             df
             
@@ -620,7 +620,7 @@ server <- function(input, output, session) {
           
           output$mrpMainTable <- renderTable({
             
-            df <- data.frame(name = "Multilevel regression with poststratification", mean = round(mean(poststrat_prob), 3), sd = round(sd(poststrat_prob), 3), bound = as.numeric(quantile(poststrat_prob, probs = input$confidence)))
+            df <- data.frame(name = "4. Multilevel regression with poststratification", mean = round(mean(poststrat_prob), 3), sd = round(sd(poststrat_prob), 3), bound = as.numeric(quantile(poststrat_prob, probs = input$confidence)))
             colnames(df) <- c("", "Expected relative error", "Std. deviation", paste0(round(input$confidence * 100, 2), "% Upper bound"))
             df
             
@@ -744,7 +744,6 @@ server <- function(input, output, session) {
               ungroup()
             
             yBreaks <- pretty(c(0, 0.5), min.n = 4)
-            
             compare <- ggplot(data=taint_by_stratum, aes(x=stratum, y=y_mean, group=1)) +
               geom_ribbon(aes(ymin=y_mean-y_sd,ymax=y_mean+y_sd,x=stratum),fill='#4682b4',alpha=.3)+
               geom_line(aes(x=stratum, y=y_mean), col = "#4682b4", size = 1)+
@@ -769,17 +768,21 @@ server <- function(input, output, session) {
                     legend.text=element_text(size=10),
                     panel.grid = element_blank())
             
-            yBreaks <- pretty(c(0, max(meanTaint, postMean, momentMean) + .025), min.n = 4)
+            yBreaks <- pretty(c(0, max(meanTaint, ubTaint, postMean, postBound, momentMean, momentBound, weightedMean, weightedBound) + .025, 0.5), min.n = 4)
             compare2 <- ggplot()+
               geom_hline(yintercept = meanTaint, size = 1, col = "#4682b4")+
+              geom_hline(yintercept = ubTaint, size = 1, col = "#4682b4", linetype = "dashed")+
               geom_text(aes(x = 5.2, y = meanTaint +.025, label = "No stratification"), size = 3, col = "#4682b4")+
-              scale_x_continuous(name = "Expected relative error") +
+              scale_x_continuous(name = "Relative error") +
               scale_y_continuous(name = "", breaks = yBreaks, limits= range(yBreaks))+
               geom_hline(yintercept = postMean, colour = '#FFB682', size = 1) +
+              geom_hline(yintercept = postBound, size = 1, col = "#FFB682", linetype = "dashed")+
               geom_text(aes(x = 5.2, y = postMean + .025), label = "MRP", colour = '#FFB682') +
               geom_hline(yintercept = momentMean, colour = 'darkred', size = 1) +
+              geom_hline(yintercept = momentBound, size = 1, col = "darkred", linetype = "dashed")+
               geom_text(aes(x = 5.2, y = momentMean + .025), label = "Moment", colour = 'darkred') +
               geom_hline(yintercept = weightedMean, colour = '#008000', size = 1) +
+              geom_hline(yintercept = weightedBound, size = 1, col = "#008000", linetype = "dashed")+
               geom_text(aes(x = 5.2, y = weightedMean + .025), label = "Weighted", colour = '#008000') +
               theme_bw()+
               theme(legend.position="none",
