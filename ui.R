@@ -26,7 +26,6 @@ ui <- fluidPage(
                       font-size: 30px;
                       font-style: italic;
                     }
-                    
                     #text1{
                       font-size: 12px;
                     }
@@ -38,6 +37,18 @@ ui <- fluidPage(
                     }
                     #text4{
                       font-size: 12px;
+                    }
+                    #header1{
+                      font-style: italic;
+                    }
+                    #header2{
+                      font-style: italic;
+                    }
+                    #header3{
+                      font-style: italic;
+                    }
+                    #header4{
+                      font-style: italic;
                     }
                     #datafile{
                       font-color: white;
@@ -105,60 +116,60 @@ ui <- fluidPage(
                 ),
                 tabPanel(title = "1. No Stratification",
                          icon = icon("circle"),
-                         h3("1. No Stratification"),
+                         h3(id = "header1", "1. No Stratification"),
                          p("In the no stratification approach all information about the available strata is discarded and the inference is solely made on the basis of the observed taints."),
-                         h3("1.1 Inference on the Population"),
+                         h4("1.1 Inference on the Population"),
                          p("Inference on the population can be performed using the posterior distribution on the taintings."),
                          shinycssloaders::withSpinner(tableOutput(outputId = "noMainTable"), color = "#4682b4", type = 4, size = 1),
                          shinycssloaders::withSpinner(plotOutput(outputId = "noMainFigure"), color = "#4682b4", type = 4, size = 1)
                 ),
                 tabPanel(title = "2. Method of Moments",
                          icon = icon("confluence"),
-                         h3("2. Method of Moments"),
+                         h3(id = "header2", "2. Method of Moments"),
                          p("The method of moments procedure aggregates the mean and variance of the beta distributions of the individual strata and computes the parameters of the (beta) group distribution using the moment estimator (Stewart 2013)."),
-                         h3("2.1 Inference on the Population"),
+                         h4("2.1 Inference on the Population"),
                          p("Inference on the population can be performed using the moment-aggregated posterior distribution."),
                          shinycssloaders::withSpinner(tableOutput(outputId = "momentMainTable"), color = "darkred", type = 4, size = 1),
                          shinycssloaders::withSpinner(plotOutput(outputId = "momentMainFigure"), color = "darkred", type = 4, size = 1),
-                         h3("2.2 Inference on Individual Strata"),
+                         h4("2.2 Inference on Individual Strata"),
                          p("Inference on the individual strata can be performed using the posterior distributions for each stratum."),
                          shinycssloaders::withSpinner(tableOutput(outputId = "momentStratumTable"), color = "darkred", type = 4, size = 1),
                          shinycssloaders::withSpinner(plotOutput(outputId = "momentStratumFigure"), color = "darkred", type = 4, size = 1),
-                         h3("2.3 Predictions for Individual Strata"),
+                         h4("2.3 Predictions for Individual Strata"),
                          p("Predictions for the individual strata can be made using the posterior predictive distributions for each stratum."),
                          shinycssloaders::withSpinner(tableOutput(outputId = "momentStratumPredictions"), color = "darkred", type = 4, size = 1),
                          shinycssloaders::withSpinner(plotOutput(outputId = "momentPredictionsFigure"), color = "darkred", type = 4, size = 1)
                 ),
                 tabPanel(title = "3. Weighting",
                          icon = icon("balance-scale-right"),
-                         h3("3. Weighting"),
+                         h3(id = "header3", "3. Weighting"),
                          p("The weighting method assigns a weight to each stratum according to how much of the stratum is seen in the sample. The taints in each stratum are counted according to these weights to form the weighted posterior distribution."),
-                         h3("3.1 Inference on the Population"),
+                         h4("3.1 Inference on the Population"),
                          p("Inference on the population can be performed using the weighted posterior distribution."),
                          shinycssloaders::withSpinner(tableOutput(outputId = "weightingMainTable"), color = "#008000", type = 4, size = 1),
                          shinycssloaders::withSpinner(plotOutput(outputId = "weightingMainFigure"), color = "#008000", type = 4, size = 1),
-                         h3("3.2 Inference on Individual Strata"),
+                         h4("3.2 Inference on Individual Strata"),
                          p("Inference on the population can be performed using the weighted posterior distribution for each stratum."),
                          shinycssloaders::withSpinner(tableOutput(outputId = "weightingStratumTable"), color = "#008000", type = 4, size = 1),
                          shinycssloaders::withSpinner(plotOutput(outputId = "weightingStratumFigure"), color = "#008000", type = 4, size = 1),
-                         h3("3.3 Predictions for Individual Strata"),
+                         h4("3.3 Predictions for Individual Strata"),
                          p("Predictions for the individual strata can be made using the weighted posterior predictive distributions for each stratum."),
                          shinycssloaders::withSpinner(tableOutput(outputId = "weightingStratumPredictions"), color = "#008000", type = 4, size = 1),
                          shinycssloaders::withSpinner(plotOutput(outputId = "weightingPredictionsFigure"), color = "#008000", type = 4, size = 1)
                 ),
                 tabPanel(title = "4. MRP",
                          icon = icon("layer-group"),
-                         h3("4. Multilevel Regression with Poststratification (MRP)"),
+                         h3(id = "header4", "4. Multilevel Regression with Poststratification (MRP)"),
                          p("Poststratification is a technique for adjusting a non-representative sample (i.e., a convenience sample or other observational data) for which there are certain predictors characterizing the various strata. It is carried out after a model is fit to the observed data, hence the name poststratification. Poststratification can be fruitfully combined with regression modeling (or more general parametric modeling), which provides estimates based on combinations of predictors (or general parameters) rather than raw counts in each stratum. Multilevel modeling is useful in determining how much partial pooling to apply in the regressions, leading to the popularity of the combination of multilevel regression and poststratification (MRP)."),
-                         h3("4.1 Inference on the Population"),
+                         h4("4.1 Inference on the Population"),
                          p("Inference on the population can be performed using the samples of the posterior distributions for the strata."),
                          shinycssloaders::withSpinner(tableOutput(outputId = "mrpMainTable"), color = "#FFB682", type = 4, size = 1),
                          shinycssloaders::withSpinner(plotOutput(outputId = "mrpPosteriorPredictive"), color = "#FFB682", type = 4, size = 1),
-                         h3("4.2 Inference on Individual Strata"),
+                         h4("4.2 Inference on Individual Strata"),
                          p("Inference on the probability of misstatement in each stratum can be performed using the posterior distributions for the linear parameter."),
                          shinycssloaders::withSpinner(tableOutput(outputId = "mrpStratumTable"), color = "#FFB682", type = 4, size = 1),
                          shinycssloaders::withSpinner(plotOutput(outputId = "mrpPosteriorDistributions"), color = "#FFB682", type = 4, size = 1),
-                         h3("4.3 Predictions for Individual Strata"),
+                         h4("4.3 Predictions for Individual Strata"),
                          p("Predictions for the errors in each stratum can be made using the posterior predictive distributions for each stratum."),
                          shinycssloaders::withSpinner(tableOutput(outputId = "mrpStratumPredictions"), color = "#FFB682", type = 4, size = 1),
                          shinycssloaders::withSpinner(plotOutput(outputId = "mrpPosteriorPredictives"), color = "#FFB682", type = 4, size = 1)
